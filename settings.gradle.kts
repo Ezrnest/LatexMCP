@@ -1,1 +1,9 @@
-rootProject.name = "LatexMCP"
+pluginManagement {
+    repositories {
+        gradlePluginPortal()
+        mavenCentral()
+        maven("https://cache-redirector.jetbrains.com/intellij-dependencies")
+    }
+}
+
+rootProject.name = providers.gradleProperty("pluginName").getOrElse("LatexMCP")
