@@ -55,14 +55,12 @@ internal object FilesetTool {
         val relatedProjectFiles = data.relatedFiles
             .mapNotNull { ProjectFileResolver.toProjectRelativePath(it, project, projectRoot) }
             .distinct()
-            .sorted()
 
         val rootProjectFiles = data.filesets
             .mapNotNull { ProjectFileResolver.toProjectRelativePath(it.root, project, projectRoot) }
             .distinct()
-            .sorted()
 
-        val libraries = if (params.includeLibraries) data.libraries.sorted() else emptyList()
+        val libraries = if (params.includeLibraries) data.libraries.toList() else emptyList()
         val externalDocuments = if (params.includeExternalDocuments) {
             data.externalDocumentInfo.map { info ->
                 ExternalDocumentResult(
@@ -70,7 +68,6 @@ internal object FilesetTool {
                     files = info.files
                         .mapNotNull { ProjectFileResolver.toProjectRelativePath(it, project, projectRoot) }
                         .distinct()
-                        .sorted()
                 )
             }
         }
