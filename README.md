@@ -117,18 +117,27 @@ Output fields:
 ## Tool: `label_locations`
 
 Purpose:
-- Input `projectPath + mainTex + label` and return the label definition locations, plus references by default.
+- Search labels by exact/wildcard/regex query and return definition locations, with optional references.
 
 Input arguments:
 - `projectPath` (required): project root directory path
-- `mainTex` (required): main `.tex` file path used as fileset context (relative to `projectPath` is preferred)
-- `label` (required): label text, for example `sec:intro`
-- `includeReferences` (optional, default `true`): include all reference locations
+- `scope` (optional, default `fileset`): `fileset` or `single_document`
+- `mainTex` (required when `scope=fileset`): main `.tex` file path used as fileset context
+- `texFile` (required when `scope=single_document`): target `.tex` file
+- `labelPattern` (recommended): query pattern
+- `label` (legacy exact query): still supported for backward compatibility
+- `patternMode` (optional, default `auto`): `auto`, `literal`, `wildcard`, `regex`
+- `caseSensitive` (optional, default `true`)
+- `includeReferences` (optional): when omitted, defaults to `true` for literal mode and `false` for wildcard/regex mode
+- `limit` (optional, default `1000`): maximum matched labels
 
 Output fields:
-- `definitions`: definition locations from `LatexLabelUtil.getLabelParamsByName(...)`
-- `references`: reference locations (empty when `includeReferences=false`)
+- `matchedLabels`: matched label names
+- `matches[]`: per-label grouped `{ label, definitions[], references[] }`
+- `definitions`: flattened definition locations across all matched labels
+- `references`: flattened reference locations across all matched labels
 - `definitions[]/references[]`: `{ file, line, column, offset }` where `file` is relative to `projectPath`
+- `truncated`, `limit`
 - `source` (`texify-labels`)
 
 ## Tool: `rename_label_safe`

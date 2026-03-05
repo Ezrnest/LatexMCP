@@ -96,4 +96,27 @@ class LatexMcpServerTest {
         assertEquals(-32602, response.path("error").path("code").asInt())
         assertTrue(response.path("error").path("message").asText().contains("mainTex"))
     }
+
+    @Test
+    fun `label locations requires query and scope specific file params`() {
+        val missingQueryResponseText = server.handleJsonRpc(
+            """
+            {"jsonrpc":"2.0","id":6,"method":"tools/call","params":{"name":"label_locations","arguments":{"projectPath":"/tmp","mainTex":"main.tex"}}}
+            """.trimIndent()
+        )
+        assertNotNull(missingQueryResponseText)
+        val missingQueryResponse = mapper.readTree(requireNotNull(missingQueryResponseText))
+        assertEquals(-32602, missingQueryResponse.path("error").path("code").asInt())
+        assertTrue(missingQueryResponse.path("error").path("message").asText().contains("labelPattern or label"))
+
+        val singleScopeResponseText = server.handleJsonRpc(
+            """
+            {"jsonrpc":"2.0","id":7,"method":"tools/call","params":{"name":"label_locations","arguments":{"projectPath":"/tmp","scope":"single_document","labelPattern":"sec:*"}}}
+            """.trimIndent()
+        )
+        assertNotNull(singleScopeResponseText)
+        val singleScopeResponse = mapper.readTree(requireNotNull(singleScopeResponseText))
+        assertEquals(-32602, singleScopeResponse.path("error").path("code").asInt())
+        assertTrue(singleScopeResponse.path("error").path("message").asText().contains("texFile"))
+    }
 }

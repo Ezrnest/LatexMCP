@@ -267,16 +267,34 @@ internal class LatexMcpServer(
     private fun handleLabelLocationsCall(id: JsonNode, arguments: JsonNode): String {
         val projectPath = arguments.path("projectPath").asText(null)
             ?: return errorResponse(id, -32602, "Invalid params: label_locations.projectPath is required")
+
+        val scope = arguments.path("scope").asText("fileset").lowercase()
         val mainTex = arguments.path("mainTex").asText(null)
-            ?: return errorResponse(id, -32602, "Invalid params: label_locations.mainTex is required")
+        val texFile = arguments.path("texFile").asText(null)
         val label = arguments.path("label").asText(null)
-            ?: return errorResponse(id, -32602, "Invalid params: label_locations.label is required")
+        val labelPattern = arguments.path("labelPattern").asText(null)
+
+        if (scope == "fileset" && mainTex == null) {
+            return errorResponse(id, -32602, "Invalid params: label_locations.mainTex is required when scope=fileset")
+        }
+        if (scope == "single_document" && texFile == null) {
+            return errorResponse(id, -32602, "Invalid params: label_locations.texFile is required when scope=single_document")
+        }
+        if (labelPattern == null && label == null) {
+            return errorResponse(id, -32602, "Invalid params: label_locations.labelPattern or label is required")
+        }
 
         val toolParams = LabelLocationsToolParams(
             projectPath = projectPath,
             mainTex = mainTex,
+            texFile = texFile,
+            scope = scope,
             label = label,
-            includeReferences = arguments.path("includeReferences").asBoolean(true),
+            labelPattern = labelPattern,
+            patternMode = arguments.path("patternMode").asText("auto"),
+            caseSensitive = arguments.path("caseSensitive").asBoolean(true),
+            includeReferences = if (arguments.has("includeReferences")) arguments.path("includeReferences").asBoolean() else null,
+            limit = arguments.path("limit").asInt(1000),
         )
 
         return runCatching {
@@ -291,7 +309,7 @@ internal class LatexMcpServer(
                             .put("type", "text")
                             .put(
                                 "text",
-                                "Found ${resultData.definitions.size} definition(s) and ${resultData.references.size} reference(s) for label '${resultData.label}'.",
+                                "Found ${resultData.matchedLabels.size} matched label(s), ${resultData.definitions.size} definition(s), ${resultData.references.size} reference(s), truncated=${resultData.truncated}.",
                             ),
                     ),
                 )
@@ -578,7 +596,7 @@ internal class LatexMcpServer(
     private fun labelLocationsToolDescriptor(): ObjectNode {
         val schema = mapper.createObjectNode().apply {
             put("type", "object")
-            set<JsonNode>("required", mapper.createArrayNode().add("projectPath").add("mainTex").add("label"))
+            set<JsonNode>("required", mapper.createArrayNode().add("projectPath"))
             set<JsonNode>(
                 "properties",
                 mapper.createObjectNode().apply {
@@ -592,20 +610,62 @@ internal class LatexMcpServer(
                         "mainTex",
                         mapper.createObjectNode()
                             .put("type", "string")
-                            .put("description", "Main LaTeX file path used as fileset context, relative to projectPath (absolute path also accepted)."),
+                            .put("description", "Main LaTeX file path used as fileset context, required when scope=fileset."),
+                    )
+                    set<JsonNode>(
+                        "texFile",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Target LaTeX file path, required when scope=single_document."),
+                    )
+                    set<JsonNode>(
+                        "scope",
+                        mapper.createObjectNode().apply {
+                            put("type", "string")
+                            set<JsonNode>("enum", mapper.createArrayNode().add("fileset").add("single_document"))
+                            put("default", "fileset")
+                            put("description", "Lookup scope: fileset or single_document.")
+                        },
                     )
                     set<JsonNode>(
                         "label",
                         mapper.createObjectNode()
                             .put("type", "string")
-                            .put("description", "Label name to resolve, for example sec:intro."),
+                            .put("description", "Legacy exact label query, for example sec:intro."),
+                    )
+                    set<JsonNode>(
+                        "labelPattern",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Label query pattern. Use literal, wildcard (*, ?), or /regex/."),
+                    )
+                    set<JsonNode>(
+                        "patternMode",
+                        mapper.createObjectNode().apply {
+                            put("type", "string")
+                            set<JsonNode>("enum", mapper.createArrayNode().add("auto").add("literal").add("wildcard").add("regex"))
+                            put("default", "auto")
+                            put("description", "Pattern mode: auto, literal, wildcard, regex.")
+                        },
+                    )
+                    set<JsonNode>(
+                        "caseSensitive",
+                        mapper.createObjectNode()
+                            .put("type", "boolean")
+                            .put("default", true),
+                    )
+                    set<JsonNode>(
+                        "limit",
+                        mapper.createObjectNode()
+                            .put("type", "integer")
+                            .put("default", 1000)
+                            .put("minimum", 1),
                     )
                     set<JsonNode>(
                         "includeReferences",
                         mapper.createObjectNode()
                             .put("type", "boolean")
-                            .put("default", true)
-                            .put("description", "Whether to include all references to the label."),
+                            .put("description", "Whether to include references for matched labels. If omitted: literal=true, wildcard/regex=false."),
                     )
                 },
             )
@@ -614,7 +674,7 @@ internal class LatexMcpServer(
         return mapper.createObjectNode().apply {
             put("name", "label_locations")
             put("title", "Resolve Label Definition And References")
-            put("description", "Find label definition locations by label name and optionally all reference locations in the same TeXiFy fileset.")
+            put("description", "Find label definitions (and optional references) by exact/wildcard/regex query in fileset or single_document scope.")
             set<JsonNode>("inputSchema", schema)
         }
     }

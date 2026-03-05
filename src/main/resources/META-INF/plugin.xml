@@ -33,7 +33,7 @@
                 displayName="LatexMCP"
                 parentId="tools"
                 instance="com.github.ezrnest.latexmcp.settings.LatexMcpConfigurable"/>
-        <toolWindow id="MyToolWindow" factoryClass="com.github.ezrnest.latexmcp.MyToolWindowFactory"
-                    icon="AllIcons.Toolwindows.ToolWindowPalette"/>
+<!--        <toolWindow id="MyToolWindow" factoryClass="com.github.ezrnest.latexmcp.MyToolWindowFactory"-->
+<!--                    icon="AllIcons.Toolwindows.ToolWindowPalette"/>-->
     </extensions>
 </idea-plugin>
