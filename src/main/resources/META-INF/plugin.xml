@@ -8,13 +8,14 @@
     <name>LatexMCP</name>
 
     <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-    <vendor url="https://www.yourcompany.com">YourCompany</vendor>
+    <vendor url="https://github.com/Ezrnest/LatexMCP">Ezrnest</vendor>
 
     <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
          Guidelines: https://plugins.jetbrains.com/docs/marketplace/best-practices-for-listing.html#plugin-description -->
     <description><![CDATA[
-        Enter short description for your plugin here.<br>
-        <em>most HTML tags may be used</em>
+      LatexMCP exposes TeXiFy/IntelliJ LaTeX analysis capabilities as an MCP server for agents.
+      <br/><br/>
+      Project: <a href="https://github.com/Ezrnest/LatexMCP">github.com/Ezrnest/LatexMCP</a>
     ]]></description>
 
     <!-- Product and plugin compatibility requirements.
@@ -26,8 +27,6 @@
     <!-- Extensions defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-        <applicationService serviceImplementation="com.github.ezrnest.latexmcp.mcp.LatexMcpService"/>
-        <applicationService serviceImplementation="com.github.ezrnest.latexmcp.mcp.LatexMcpHttpService"/>
         <postStartupActivity implementation="com.github.ezrnest.latexmcp.mcp.LatexMcpStartupActivity"/>
         <toolWindow id="MyToolWindow" factoryClass="com.github.ezrnest.latexmcp.MyToolWindowFactory"
                     icon="AllIcons.Toolwindows.ToolWindowPalette"/>
