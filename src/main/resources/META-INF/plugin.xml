@@ -27,6 +27,8 @@
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
         <applicationService serviceImplementation="com.github.ezrnest.latexmcp.mcp.LatexMcpService"/>
+        <applicationService serviceImplementation="com.github.ezrnest.latexmcp.mcp.LatexMcpHttpService"/>
+        <postStartupActivity implementation="com.github.ezrnest.latexmcp.mcp.LatexMcpStartupActivity"/>
         <toolWindow id="MyToolWindow" factoryClass="com.github.ezrnest.latexmcp.MyToolWindowFactory"
                     icon="AllIcons.Toolwindows.ToolWindowPalette"/>
     </extensions>
