@@ -116,6 +116,7 @@ internal class LatexMcpServer(
         tools.add(documentStructureToolDescriptor())
         tools.add(labelLocationsToolDescriptor())
         tools.add(renameLabelSafeToolDescriptor())
+        tools.add(structuredSearchToolDescriptor())
 
         val result = mapper.createObjectNode().apply {
             set<JsonNode>("tools", tools)
@@ -134,6 +135,7 @@ internal class LatexMcpServer(
             "document_structure" -> handleDocumentStructureCall(id, arguments)
             "label_locations" -> handleLabelLocationsCall(id, arguments)
             "rename_label_safe" -> handleRenameLabelSafeCall(id, arguments)
+            "structured_search" -> handleStructuredSearchCall(id, arguments)
             else -> errorResponse(id, -32601, "Unknown tool: $name")
         }
     }
@@ -347,6 +349,73 @@ internal class LatexMcpServer(
         }
     }
 
+    private fun handleStructuredSearchCall(id: JsonNode, arguments: JsonNode): String {
+        val projectPath = arguments.path("projectPath").asText(null)
+            ?: return errorResponse(id, -32602, "Invalid params: structured_search.projectPath is required")
+        val namePattern = arguments.path("namePattern").asText(null)
+            ?: return errorResponse(id, -32602, "Invalid params: structured_search.namePattern is required")
+
+        val scope = arguments.path("scope").asText("fileset").lowercase()
+        val mainTex = arguments.path("mainTex").asText(null)
+        val texFile = arguments.path("texFile").asText(null)
+
+        if (scope == "fileset" && mainTex == null) {
+            return errorResponse(id, -32602, "Invalid params: structured_search.mainTex is required when scope=fileset")
+        }
+        if (scope == "single_document" && texFile == null) {
+            return errorResponse(id, -32602, "Invalid params: structured_search.texFile is required when scope=single_document")
+        }
+
+        val toolParams = StructuredSearchToolParams(
+            projectPath = projectPath,
+            scope = scope,
+            mainTex = mainTex,
+            texFile = texFile,
+            namePattern = namePattern,
+            patternMode = arguments.path("patternMode").asText("auto"),
+            type = arguments.path("type").asText("both"),
+            caseSensitive = arguments.path("caseSensitive").asBoolean(true),
+            limit = arguments.path("limit").asInt(1000),
+        )
+
+        return runCatching {
+            val resultData = StructuredSearchTool.execute(toolParams)
+            val structured = mapper.valueToTree<JsonNode>(resultData)
+
+            val callResult = mapper.createObjectNode().apply {
+                set<JsonNode>(
+                    "content",
+                    mapper.createArrayNode().add(
+                        mapper.createObjectNode()
+                            .put("type", "text")
+                            .put(
+                                "text",
+                                "Structured search found ${resultData.count} match(es) in ${resultData.scope}, truncated=${resultData.truncated}.",
+                            ),
+                    ),
+                )
+                set<JsonNode>("structuredContent", structured)
+                put("isError", false)
+            }
+
+            successResponse(id, callResult)
+        }.getOrElse { error ->
+            val callResult = mapper.createObjectNode().apply {
+                set<JsonNode>(
+                    "content",
+                    mapper.createArrayNode().add(
+                        mapper.createObjectNode()
+                            .put("type", "text")
+                            .put("text", error.message ?: "structured_search tool execution failed"),
+                    ),
+                )
+                put("isError", true)
+            }
+
+            successResponse(id, callResult)
+        }
+    }
+
     private fun filesetToolDescriptor(): ObjectNode {
         val schema = mapper.createObjectNode().apply {
             put("type", "object")
@@ -511,6 +580,89 @@ internal class LatexMcpServer(
             put("name", "rename_label_safe")
             put("title", "Rename Label Safely")
             put("description", "Rename a LaTeX label definition and all references in the same fileset, with collision checks.")
+            set<JsonNode>("inputSchema", schema)
+        }
+    }
+
+    private fun structuredSearchToolDescriptor(): ObjectNode {
+        val schema = mapper.createObjectNode().apply {
+            put("type", "object")
+            set<JsonNode>("required", mapper.createArrayNode().add("projectPath").add("namePattern"))
+            set<JsonNode>(
+                "properties",
+                mapper.createObjectNode().apply {
+                    set<JsonNode>(
+                        "projectPath",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Absolute or workspace-relative path of the IntelliJ project root directory."),
+                    )
+                    set<JsonNode>(
+                        "scope",
+                        mapper.createObjectNode().apply {
+                            put("type", "string")
+                            set<JsonNode>("enum", mapper.createArrayNode().add("fileset").add("single_document"))
+                            put("default", "fileset")
+                            put("description", "Search scope: fileset or single_document.")
+                        },
+                    )
+                    set<JsonNode>(
+                        "mainTex",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Main LaTeX file path used as fileset context, required when scope=fileset."),
+                    )
+                    set<JsonNode>(
+                        "texFile",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Target LaTeX file path, required when scope=single_document."),
+                    )
+                    set<JsonNode>(
+                        "namePattern",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Name pattern to match command/environment names."),
+                    )
+                    set<JsonNode>(
+                        "patternMode",
+                        mapper.createObjectNode().apply {
+                            put("type", "string")
+                            set<JsonNode>("enum", mapper.createArrayNode().add("auto").add("literal").add("wildcard").add("regex"))
+                            put("default", "auto")
+                            put("description", "Pattern mode: auto, literal, wildcard, regex.")
+                        },
+                    )
+                    set<JsonNode>(
+                        "type",
+                        mapper.createObjectNode().apply {
+                            put("type", "string")
+                            set<JsonNode>("enum", mapper.createArrayNode().add("both").add("command").add("environment"))
+                            put("default", "both")
+                            put("description", "Target type: both, command, environment.")
+                        },
+                    )
+                    set<JsonNode>(
+                        "caseSensitive",
+                        mapper.createObjectNode()
+                            .put("type", "boolean")
+                            .put("default", true),
+                    )
+                    set<JsonNode>(
+                        "limit",
+                        mapper.createObjectNode()
+                            .put("type", "integer")
+                            .put("default", 1000)
+                            .put("minimum", 1),
+                    )
+                },
+            )
+        }
+
+        return mapper.createObjectNode().apply {
+            put("name", "structured_search")
+            put("title", "Structured PSI Search")
+            put("description", "Search commands and/or environments by name in a single document or TeXiFy fileset, with literal/wildcard/regex matching.")
             set<JsonNode>("inputSchema", schema)
         }
     }

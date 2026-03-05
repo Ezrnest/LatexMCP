@@ -11,6 +11,7 @@ Implemented:
 - `document_structure` tool backed by TeXiFy `LatexStructureViewElement`
 - `label_locations` tool backed by TeXiFy `LatexLabelUtil`
 - `rename_label_safe` tool for safe label rename across definitions and references
+- `structured_search` tool for PSI-based command/environment name search
 - Stdio transport entrypoint
 - HTTP transport entrypoint
 
@@ -147,6 +148,27 @@ Output fields:
 - `changedFiles`: modified files (relative paths)
 - `edits[]`: per-location result with `{ kind, file, line, column, offset, applied }`
 - `source` (`texify-label-rename`)
+
+## Tool: `structured_search`
+
+Purpose:
+- Search command/environment names using PSI traversal in either one document or an entire fileset.
+
+Input arguments:
+- `projectPath` (required): project root directory path
+- `namePattern` (required): name matcher pattern
+- `scope` (optional, default `fileset`): `fileset` or `single_document`
+- `mainTex` (required when `scope=fileset`): fileset context main file
+- `texFile` (required when `scope=single_document`): target file
+- `type` (optional, default `both`): `both`, `command`, or `environment`
+- `patternMode` (optional, default `auto`): `auto`, `literal`, `wildcard`, `regex`
+- `caseSensitive` (optional, default `true`)
+- `limit` (optional, default `1000`)
+
+Output fields:
+- `count`, `truncated`, `limit`
+- `results[]`: `{ type, name, file, line, column, offset, text }`
+- `source` (`texify-structured-search`)
 
 ## Notes
 
