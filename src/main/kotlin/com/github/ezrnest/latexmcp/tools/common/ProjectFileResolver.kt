@@ -1,4 +1,4 @@
-package com.github.ezrnest.latexmcp.mcp
+package com.github.ezrnest.latexmcp.tools.common
 
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.project.ProjectManager

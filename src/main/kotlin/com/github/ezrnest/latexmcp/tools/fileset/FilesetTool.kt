@@ -1,5 +1,7 @@
-package com.github.ezrnest.latexmcp.mcp
+package com.github.ezrnest.latexmcp.tools.fileset
 
+import com.github.ezrnest.latexmcp.tools.common.ProjectFileResolver
+import com.github.ezrnest.latexmcp.tools.common.ToolExecutionHelper
 import com.intellij.openapi.application.ReadAction
 import nl.hannahsten.texifyidea.index.projectstructure.FilesetData
 import nl.hannahsten.texifyidea.index.projectstructure.LatexProjectStructure

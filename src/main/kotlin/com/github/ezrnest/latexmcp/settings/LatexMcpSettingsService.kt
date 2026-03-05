@@ -1,4 +1,4 @@
-package com.github.ezrnest.latexmcp.mcp
+package com.github.ezrnest.latexmcp.settings
 
 import com.intellij.openapi.components.PersistentStateComponent
 import com.intellij.openapi.components.Service

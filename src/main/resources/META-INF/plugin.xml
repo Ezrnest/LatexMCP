@@ -27,12 +27,12 @@
     <!-- Extensions defined by the plugin.
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
-        <postStartupActivity implementation="com.github.ezrnest.latexmcp.mcp.LatexMcpStartupActivity"/>
+        <postStartupActivity implementation="com.github.ezrnest.latexmcp.ide.LatexMcpStartupActivity"/>
         <applicationConfigurable
                 id="com.github.ezrnest.latexmcp.settings"
                 displayName="LatexMCP"
                 parentId="tools"
-                instance="com.github.ezrnest.latexmcp.mcp.LatexMcpConfigurable"/>
+                instance="com.github.ezrnest.latexmcp.settings.LatexMcpConfigurable"/>
         <toolWindow id="MyToolWindow" factoryClass="com.github.ezrnest.latexmcp.MyToolWindowFactory"
                     icon="AllIcons.Toolwindows.ToolWindowPalette"/>
     </extensions>

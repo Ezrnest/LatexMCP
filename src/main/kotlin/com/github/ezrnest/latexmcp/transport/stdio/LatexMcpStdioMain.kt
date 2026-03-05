@@ -1,5 +1,6 @@
-package com.github.ezrnest.latexmcp.mcp
+package com.github.ezrnest.latexmcp.transport.stdio
 
+import com.github.ezrnest.latexmcp.protocol.LatexMcpServer
 import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.InputStreamReader

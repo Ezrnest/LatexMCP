@@ -1,4 +1,4 @@
-package com.github.ezrnest.latexmcp.mcp
+package com.github.ezrnest.latexmcp.tools.structure
 
 import com.github.ezrnest.latexmcp.updateCommandDef
 import com.intellij.testFramework.fixtures.BasePlatformTestCase

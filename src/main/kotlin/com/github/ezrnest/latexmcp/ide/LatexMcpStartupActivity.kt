@@ -1,5 +1,6 @@
-package com.github.ezrnest.latexmcp.mcp
+package com.github.ezrnest.latexmcp.ide
 
+import com.github.ezrnest.latexmcp.transport.http.LatexMcpHttpService
 import com.intellij.openapi.components.service
 import com.intellij.openapi.project.Project
 import com.intellij.openapi.startup.ProjectActivity

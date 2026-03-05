@@ -1,5 +1,7 @@
-package com.github.ezrnest.latexmcp.mcp
+package com.github.ezrnest.latexmcp.tools.structure
 
+import com.github.ezrnest.latexmcp.tools.common.ProjectFileResolver
+import com.github.ezrnest.latexmcp.tools.common.ToolExecutionHelper
 import com.intellij.ide.util.treeView.smartTree.TreeElement
 import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.Document

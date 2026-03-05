@@ -1,9 +1,19 @@
-package com.github.ezrnest.latexmcp.mcp
+package com.github.ezrnest.latexmcp.protocol
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
+import com.github.ezrnest.latexmcp.tools.fileset.FilesetTool
+import com.github.ezrnest.latexmcp.tools.fileset.FilesetToolParams
+import com.github.ezrnest.latexmcp.tools.labels.LabelLocationsTool
+import com.github.ezrnest.latexmcp.tools.labels.LabelLocationsToolParams
+import com.github.ezrnest.latexmcp.tools.labels.RenameLabelSafeTool
+import com.github.ezrnest.latexmcp.tools.labels.RenameLabelSafeToolParams
+import com.github.ezrnest.latexmcp.tools.search.StructuredSearchTool
+import com.github.ezrnest.latexmcp.tools.search.StructuredSearchToolParams
+import com.github.ezrnest.latexmcp.tools.structure.DocumentStructureTool
+import com.github.ezrnest.latexmcp.tools.structure.DocumentStructureToolParams
 
 internal class LatexMcpServer(
     private val mapper: ObjectMapper = ObjectMapper(),

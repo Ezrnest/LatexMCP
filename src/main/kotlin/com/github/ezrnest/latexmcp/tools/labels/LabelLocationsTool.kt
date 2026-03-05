@@ -1,5 +1,7 @@
-package com.github.ezrnest.latexmcp.mcp
+package com.github.ezrnest.latexmcp.tools.labels
 
+import com.github.ezrnest.latexmcp.tools.common.ProjectFileResolver
+import com.github.ezrnest.latexmcp.tools.common.ToolExecutionHelper
 import com.intellij.openapi.application.ReadAction
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement

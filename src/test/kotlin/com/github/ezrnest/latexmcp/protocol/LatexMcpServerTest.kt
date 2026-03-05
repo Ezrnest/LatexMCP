@@ -1,4 +1,4 @@
-package com.github.ezrnest.latexmcp.mcp
+package com.github.ezrnest.latexmcp.protocol
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.junit.Assert.assertEquals

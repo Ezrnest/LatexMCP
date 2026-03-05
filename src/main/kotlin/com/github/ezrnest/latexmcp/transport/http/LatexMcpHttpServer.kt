@@ -1,5 +1,6 @@
-package com.github.ezrnest.latexmcp.mcp
+package com.github.ezrnest.latexmcp.transport.http
 
+import com.github.ezrnest.latexmcp.protocol.LatexMcpServer
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.sun.net.httpserver.HttpExchange
 import com.sun.net.httpserver.HttpServer

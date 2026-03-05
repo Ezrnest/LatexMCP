@@ -1,4 +1,4 @@
-package com.github.ezrnest.latexmcp.mcp
+package com.github.ezrnest.latexmcp.tools.labels
 
 import com.github.ezrnest.latexmcp.updateFilesets
 import com.intellij.testFramework.fixtures.BasePlatformTestCase

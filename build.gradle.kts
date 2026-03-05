@@ -58,7 +58,7 @@ tasks {
         group = "run"
         description = "Run LatexMCP as a standalone MCP stdio server process."
         classpath = sourceSets["main"].runtimeClasspath
-        mainClass.set("com.github.ezrnest.latexmcp.mcp.LatexMcpStdioMain")
+        mainClass.set("com.github.ezrnest.latexmcp.transport.stdio.LatexMcpStdioMain")
         standardInput = System.`in`
         standardOutput = System.out
         errorOutput = System.err
@@ -68,7 +68,7 @@ tasks {
         group = "run"
         description = "Run LatexMCP as a standalone MCP HTTP server process on port 18765 (configurable via LATEX_MCP_PORT)."
         classpath = sourceSets["main"].runtimeClasspath
-        mainClass.set("com.github.ezrnest.latexmcp.mcp.LatexMcpHttpMain")
+        mainClass.set("com.github.ezrnest.latexmcp.transport.http.LatexMcpHttpMain")
         standardInput = System.`in`
         standardOutput = System.out
         errorOutput = System.err

@@ -1,5 +1,6 @@
-package com.github.ezrnest.latexmcp.mcp
+package com.github.ezrnest.latexmcp.settings
 
+import com.github.ezrnest.latexmcp.transport.http.LatexMcpHttpService
 import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.options.Configurable
 import com.intellij.util.ui.FormBuilder

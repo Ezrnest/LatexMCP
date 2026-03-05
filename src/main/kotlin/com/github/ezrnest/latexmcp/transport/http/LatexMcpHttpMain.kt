@@ -1,4 +1,4 @@
-package com.github.ezrnest.latexmcp.mcp
+package com.github.ezrnest.latexmcp.transport.http
 
 /**
  * Standalone dev entrypoint.
