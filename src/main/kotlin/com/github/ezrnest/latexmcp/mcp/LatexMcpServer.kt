@@ -95,7 +95,7 @@ internal class LatexMcpServer(
             set<JsonNode>(
                 "serverInfo",
                 mapper.createObjectNode().apply {
-                    put("name", "latexmcp")
+                    put("name", "latex-mcp")
                     put("version", "0.1.0")
                 },
             )

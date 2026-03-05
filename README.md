@@ -48,7 +48,7 @@ For clients using `mcp-remote`:
 ```json
 {
   "mcpServers": {
-    "latexmcp": {
+    "latex-mcp": {
       "command": "npx",
       "args": [
         "mcp-remote",
