@@ -72,6 +72,10 @@ tasks {
         standardOutput = System.out
         errorOutput = System.err
     }
+
+    named("buildSearchableOptions") {
+        enabled = false
+    }
 }
 
 kotlin {

@@ -91,7 +91,7 @@ internal class LatexMcpServer(
 
     private fun initializeResponse(id: JsonNode): String {
         val result = mapper.createObjectNode().apply {
-            put("protocolVersion", "2025-03-26")
+            put("protocolVersion", "2025-06-18")
             set<JsonNode>(
                 "serverInfo",
                 mapper.createObjectNode().apply {

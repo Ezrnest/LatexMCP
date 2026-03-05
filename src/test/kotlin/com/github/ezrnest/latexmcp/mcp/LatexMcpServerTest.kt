@@ -22,7 +22,7 @@ class LatexMcpServerTest {
         val response = mapper.readTree(requireNotNull(responseText))
         assertEquals("2.0", response.path("jsonrpc").asText())
         assertEquals(1, response.path("id").asInt())
-        assertEquals("2025-03-26", response.path("result").path("protocolVersion").asText())
+        assertEquals("2025-06-18", response.path("result").path("protocolVersion").asText())
         assertEquals("latex-mcp", response.path("result").path("serverInfo").path("name").asText())
     }
 

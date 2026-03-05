@@ -16,7 +16,7 @@ internal class LatexMcpHttpServer(
 ) {
 
     companion object {
-        const val SUPPORTED_PROTOCOL_VERSION = "2025-03-26"
+        const val SUPPORTED_PROTOCOL_VERSION = "2025-06-18"
     }
 
     private val sessions = ConcurrentHashMap.newKeySet<String>()
@@ -52,8 +52,6 @@ internal class LatexMcpHttpServer(
     fun baseUrl(): String = "http://$host:$port"
 
     private fun handleMcp(exchange: HttpExchange) {
-        if (!validateProtocolVersion(exchange)) return
-
         when (exchange.requestMethod) {
             "POST" -> handlePost(exchange)
             "GET" -> handleGet(exchange)
@@ -111,13 +109,7 @@ internal class LatexMcpHttpServer(
         }
         exchange.responseHeaders.set("MCP-Protocol-Version", SUPPORTED_PROTOCOL_VERSION)
 
-        val accept = exchange.requestHeaders.getFirst("Accept").orEmpty()
-        if (accept.contains("text/event-stream")) {
-            sendSse(exchange, response)
-        }
-        else {
-            send(exchange, 200, "application/json; charset=utf-8", response)
-        }
+        send(exchange, 200, "application/json; charset=utf-8", response)
     }
 
     private fun handleGet(exchange: HttpExchange) {
@@ -157,34 +149,6 @@ internal class LatexMcpHttpServer(
         }
         exchange.sendResponseHeaders(204, -1)
         exchange.close()
-    }
-
-    private fun validateProtocolVersion(exchange: HttpExchange): Boolean {
-        val version = exchange.requestHeaders.getFirst("MCP-Protocol-Version")
-        if (version != null && version != SUPPORTED_PROTOCOL_VERSION) {
-            send(exchange, 400, "text/plain; charset=utf-8", "Unsupported MCP-Protocol-Version: $version")
-            return false
-        }
-        return true
-    }
-
-    private fun sendSse(exchange: HttpExchange, jsonPayload: String) {
-        exchange.responseHeaders.set("Content-Type", "text/event-stream; charset=utf-8")
-        exchange.responseHeaders.set("Cache-Control", "no-cache")
-        exchange.responseHeaders.set("Connection", "keep-alive")
-        val sseData = buildString {
-            append("event: message\\n")
-            jsonPayload.lines().forEach { line ->
-                append("data: ").append(line).append('\n')
-            }
-            append('\n')
-        }
-        val bytes = sseData.toByteArray(StandardCharsets.UTF_8)
-        exchange.sendResponseHeaders(200, bytes.size.toLong())
-        exchange.responseBody.use { output ->
-            output.write(bytes)
-            output.flush()
-        }
     }
 
     private fun send(exchange: HttpExchange, code: Int, contentType: String, body: String) {
