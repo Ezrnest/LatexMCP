@@ -5,8 +5,6 @@ import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiElement
 import com.intellij.psi.PsiManager
 import com.intellij.psi.search.searches.ReferencesSearch
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 import nl.hannahsten.texifyidea.index.projectstructure.LatexProjectStructure
 import nl.hannahsten.texifyidea.util.labels.LatexLabelUtil
 
@@ -36,19 +34,13 @@ internal data class LabelLocation(
 internal object LabelLocationsTool {
 
     fun execute(params: LabelLocationsToolParams): LabelLocationsToolResult {
-        val resolved = ProjectFileResolver.resolve(
+        val resolved = ToolExecutionHelper.resolveAndPrepare(
             projectPath = params.projectPath,
             texFile = params.mainTex,
         )
         val projectRoot = resolved.projectPath
         val project = resolved.project
         val mainFile = resolved.targetFile
-
-        runBlocking {
-            withTimeout(10_000L) {
-                LatexProjectStructure.updateFilesetsSuspend(project)
-            }
-        }
 
         val (definitions, references) = ReadAction.compute<Pair<List<LabelLocation>, List<LabelLocation>>, RuntimeException> {
             val psiMainFile = PsiManager.getInstance(project).findFile(mainFile)

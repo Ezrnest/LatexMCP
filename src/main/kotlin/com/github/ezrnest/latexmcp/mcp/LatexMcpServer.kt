@@ -115,6 +115,7 @@ internal class LatexMcpServer(
         tools.add(filesetToolDescriptor())
         tools.add(documentStructureToolDescriptor())
         tools.add(labelLocationsToolDescriptor())
+        tools.add(renameLabelSafeToolDescriptor())
 
         val result = mapper.createObjectNode().apply {
             set<JsonNode>("tools", tools)
@@ -132,6 +133,7 @@ internal class LatexMcpServer(
             "fileset" -> handleFilesetCall(id, arguments)
             "document_structure" -> handleDocumentStructureCall(id, arguments)
             "label_locations" -> handleLabelLocationsCall(id, arguments)
+            "rename_label_safe" -> handleRenameLabelSafeCall(id, arguments)
             else -> errorResponse(id, -32601, "Unknown tool: $name")
         }
     }
@@ -289,6 +291,62 @@ internal class LatexMcpServer(
         }
     }
 
+    private fun handleRenameLabelSafeCall(id: JsonNode, arguments: JsonNode): String {
+        val projectPath = arguments.path("projectPath").asText(null)
+            ?: return errorResponse(id, -32602, "Invalid params: rename_label_safe.projectPath is required")
+        val mainTex = arguments.path("mainTex").asText(null)
+            ?: return errorResponse(id, -32602, "Invalid params: rename_label_safe.mainTex is required")
+        val oldLabel = arguments.path("oldLabel").asText(null)
+            ?: return errorResponse(id, -32602, "Invalid params: rename_label_safe.oldLabel is required")
+        val newLabel = arguments.path("newLabel").asText(null)
+            ?: return errorResponse(id, -32602, "Invalid params: rename_label_safe.newLabel is required")
+
+        val toolParams = RenameLabelSafeToolParams(
+            projectPath = projectPath,
+            mainTex = mainTex,
+            oldLabel = oldLabel,
+            newLabel = newLabel,
+            applyChanges = arguments.path("applyChanges").asBoolean(true),
+        )
+
+        return runCatching {
+            val resultData = RenameLabelSafeTool.execute(toolParams)
+            val structured = mapper.valueToTree<JsonNode>(resultData)
+
+            val callResult = mapper.createObjectNode().apply {
+                set<JsonNode>(
+                    "content",
+                    mapper.createArrayNode().add(
+                        mapper.createObjectNode()
+                            .put("type", "text")
+                            .put(
+                                "text",
+                                "Planned ${resultData.plannedEdits} edit(s), applied ${resultData.appliedEdits} edit(s) for '${resultData.oldLabel}' -> '${resultData.newLabel}'.",
+                            ),
+                    ),
+                )
+                set<JsonNode>("structuredContent", structured)
+                put("isError", false)
+            }
+
+            successResponse(id, callResult)
+        }.getOrElse { error ->
+            val callResult = mapper.createObjectNode().apply {
+                set<JsonNode>(
+                    "content",
+                    mapper.createArrayNode().add(
+                        mapper.createObjectNode()
+                            .put("type", "text")
+                            .put("text", error.message ?: "rename_label_safe tool execution failed"),
+                    ),
+                )
+                put("isError", true)
+            }
+
+            successResponse(id, callResult)
+        }
+    }
+
     private fun filesetToolDescriptor(): ObjectNode {
         val schema = mapper.createObjectNode().apply {
             put("type", "object")
@@ -403,6 +461,56 @@ internal class LatexMcpServer(
             put("name", "label_locations")
             put("title", "Resolve Label Definition And References")
             put("description", "Find label definition locations by label name and optionally all reference locations in the same TeXiFy fileset.")
+            set<JsonNode>("inputSchema", schema)
+        }
+    }
+
+    private fun renameLabelSafeToolDescriptor(): ObjectNode {
+        val schema = mapper.createObjectNode().apply {
+            put("type", "object")
+            set<JsonNode>("required", mapper.createArrayNode().add("projectPath").add("mainTex").add("oldLabel").add("newLabel"))
+            set<JsonNode>(
+                "properties",
+                mapper.createObjectNode().apply {
+                    set<JsonNode>(
+                        "projectPath",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Absolute or workspace-relative path of the IntelliJ project root directory."),
+                    )
+                    set<JsonNode>(
+                        "mainTex",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Main LaTeX file path used as fileset context, relative to projectPath (absolute path also accepted)."),
+                    )
+                    set<JsonNode>(
+                        "oldLabel",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Existing label name to rename."),
+                    )
+                    set<JsonNode>(
+                        "newLabel",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Target label name."),
+                    )
+                    set<JsonNode>(
+                        "applyChanges",
+                        mapper.createObjectNode()
+                            .put("type", "boolean")
+                            .put("default", true)
+                            .put("description", "If false, only preview edits without writing files."),
+                    )
+                },
+            )
+        }
+
+        return mapper.createObjectNode().apply {
+            put("name", "rename_label_safe")
+            put("title", "Rename Label Safely")
+            put("description", "Rename a LaTeX label definition and all references in the same fileset, with collision checks.")
             set<JsonNode>("inputSchema", schema)
         }
     }

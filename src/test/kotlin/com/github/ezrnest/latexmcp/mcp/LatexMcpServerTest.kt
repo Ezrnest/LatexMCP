@@ -36,7 +36,7 @@ class LatexMcpServerTest {
     }
 
     @Test
-    fun `tools list includes fileset document structure and label locations tools`() {
+    fun `tools list includes fileset document structure label locations and rename label tools`() {
         val responseText = server.handleJsonRpc(
             """{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}"""
         )
@@ -48,6 +48,7 @@ class LatexMcpServerTest {
         assertTrue(tools.any { it.path("name").asText() == "fileset" })
         assertTrue(tools.any { it.path("name").asText() == "document_structure" })
         assertTrue(tools.any { it.path("name").asText() == "label_locations" })
+        assertTrue(tools.any { it.path("name").asText() == "rename_label_safe" })
     }
 
     @Test

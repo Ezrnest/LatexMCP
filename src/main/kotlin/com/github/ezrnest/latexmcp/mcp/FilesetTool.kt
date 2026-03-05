@@ -1,8 +1,6 @@
 package com.github.ezrnest.latexmcp.mcp
 
 import com.intellij.openapi.application.ReadAction
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
 import nl.hannahsten.texifyidea.index.projectstructure.FilesetData
 import nl.hannahsten.texifyidea.index.projectstructure.LatexProjectStructure
 
@@ -31,20 +29,13 @@ internal data class ExternalDocumentResult(
 internal object FilesetTool {
 
     fun execute(params: FilesetToolParams): FilesetToolResult {
-        val resolved = ProjectFileResolver.resolve(
+        val resolved = ToolExecutionHelper.resolveAndPrepare(
             projectPath = params.projectPath,
             texFile = params.texFile,
         )
         val projectRoot = resolved.projectPath
         val project = resolved.project
         val targetFile = resolved.targetFile
-
-        // Force refresh once so MCP callers get current fileset state, mirroring TeXiFy tests.
-        runBlocking {
-            withTimeout(10_000L) {
-                LatexProjectStructure.updateFilesetsSuspend(project)
-            }
-        }
 
         val data = ReadAction.compute<FilesetData?, RuntimeException> {
             LatexProjectStructure.getFilesetDataFor(targetFile, project)

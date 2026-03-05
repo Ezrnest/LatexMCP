@@ -65,7 +65,7 @@ internal object DocumentStructureTool {
     )
 
     fun execute(params: DocumentStructureToolParams): DocumentStructureToolResult {
-        val resolved = ProjectFileResolver.resolve(
+        val resolved = ToolExecutionHelper.resolveAndPrepare(
             projectPath = params.projectPath,
             texFile = params.texFile,
         )

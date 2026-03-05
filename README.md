@@ -10,6 +10,7 @@ Implemented:
 - `fileset` tool backed by TeXiFy `LatexProjectStructure`
 - `document_structure` tool backed by TeXiFy `LatexStructureViewElement`
 - `label_locations` tool backed by TeXiFy `LatexLabelUtil`
+- `rename_label_safe` tool for safe label rename across definitions and references
 - Stdio transport entrypoint
 - HTTP transport entrypoint
 
@@ -125,8 +126,28 @@ Output fields:
 - `definitions[]/references[]`: `{ file, line, column, offset }` where `file` is relative to `projectPath`
 - `source` (`texify-labels`)
 
+## Tool: `rename_label_safe`
+
+Purpose:
+- Rename an existing label definition and its references in the same fileset, with collision checks.
+
+Input arguments:
+- `projectPath` (required): project root directory path
+- `mainTex` (required): main `.tex` file used as fileset context
+- `oldLabel` (required): existing label text
+- `newLabel` (required): target label text
+- `applyChanges` (optional, default `true`): if `false`, only preview edits
+
+Output fields:
+- `definitionsFound`, `referencesFound`: matched definition/reference count before filtering
+- `plannedEdits`, `appliedEdits`: edit counts
+- `changedFiles`: modified files (relative paths)
+- `edits[]`: per-location result with `{ kind, file, line, column, offset, applied }`
+- `source` (`texify-label-rename`)
+
 ## Notes
 
 - TeXiFy plugin dependency is required at runtime (`nl.rubensten.texifyidea`).
 - Tool resolution relies on IntelliJ open project context.
+- Before each tool execution, the server uses a disk-first refresh policy (refresh VFS, reload unsaved project documents from disk) and then updates TeXiFy filesets.
 - Design notes are in `notes/mcp-design.md`.
