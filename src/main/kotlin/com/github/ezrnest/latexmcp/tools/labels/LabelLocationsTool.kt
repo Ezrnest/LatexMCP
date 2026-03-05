@@ -10,6 +10,9 @@ import com.intellij.psi.search.searches.ReferencesSearch
 import nl.hannahsten.texifyidea.index.projectstructure.LatexProjectStructure
 import nl.hannahsten.texifyidea.util.labels.LatexLabelUtil
 
+/**
+ * Input for [LabelLocationsTool].
+ */
 internal data class LabelLocationsToolParams(
     val projectPath: String,
     val mainTex: String,
@@ -17,6 +20,9 @@ internal data class LabelLocationsToolParams(
     val includeReferences: Boolean = true,
 )
 
+/**
+ * Label definition/reference lookup result in fileset scope.
+ */
 internal data class LabelLocationsToolResult(
     val projectPath: String,
     val mainTex: String,
@@ -26,6 +32,9 @@ internal data class LabelLocationsToolResult(
     val source: String = "texify-labels",
 )
 
+/**
+ * PSI location encoded for MCP responses.
+ */
 internal data class LabelLocation(
     val file: String,
     val line: Int,
@@ -33,8 +42,14 @@ internal data class LabelLocation(
     val offset: Int,
 )
 
+/**
+ * Resolves label definitions and, optionally, all references in the same TeXiFy fileset.
+ */
 internal object LabelLocationsTool {
 
+    /**
+     * Returns deterministic, de-duplicated label locations sorted by file and offset.
+     */
     fun execute(params: LabelLocationsToolParams): LabelLocationsToolResult {
         val resolved = ToolExecutionHelper.resolveAndPrepare(
             projectPath = params.projectPath,

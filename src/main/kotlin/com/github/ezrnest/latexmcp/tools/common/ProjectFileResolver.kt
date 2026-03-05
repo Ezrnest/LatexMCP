@@ -11,6 +11,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
+/**
+ * Fully resolved tool context after mapping user input to IntelliJ project + VFS file.
+ */
 internal data class ResolvedProjectTexFile(
     val project: Project,
     val targetFile: VirtualFile,
@@ -18,8 +21,18 @@ internal data class ResolvedProjectTexFile(
     val relativeTexFile: String,
 )
 
+/**
+ * Resolves tool path inputs against currently opened IntelliJ projects.
+ *
+ * This is intentionally strict about project boundaries: target files must be under `projectPath`.
+ */
 internal object ProjectFileResolver {
 
+    /**
+     * Resolves `projectPath + texFile` to an open project and a concrete VFS file.
+     *
+     * Throws [IllegalArgumentException] when the project or file cannot be mapped.
+     */
     fun resolve(projectPath: String, texFile: String): ResolvedProjectTexFile {
         val normalizedProjectPath = normalizePath(projectPath)
         val project = resolveProject(normalizedProjectPath, texFile)
@@ -39,6 +52,11 @@ internal object ProjectFileResolver {
         )
     }
 
+    /**
+     * Converts a VFS file into a project-relative path suitable for MCP responses.
+     *
+     * Returns `null` when the file is outside project content and outside `projectPath`.
+     */
     fun toProjectRelativePath(file: VirtualFile, project: Project, projectPath: String): String? {
         projectRoots(project).forEach { root ->
             VfsUtilCore.getRelativePath(file, root, '/')

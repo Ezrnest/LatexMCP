@@ -10,8 +10,17 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import nl.hannahsten.texifyidea.index.projectstructure.LatexProjectStructure
 
+/**
+ * Shared pre-execution pipeline for all tools.
+ *
+ * It enforces a disk-first view (refresh VFS + reload unsaved project docs) and refreshes
+ * TeXiFy filesets to reduce stale PSI/index results.
+ */
 internal object ToolExecutionHelper {
 
+    /**
+     * Resolves user paths and prepares project state before PSI-based analysis.
+     */
     fun resolveAndPrepare(projectPath: String, texFile: String): ResolvedProjectTexFile {
         val resolved = ProjectFileResolver.resolve(projectPath, texFile)
         refreshLocalFiles(resolved.project, resolved.targetFile)

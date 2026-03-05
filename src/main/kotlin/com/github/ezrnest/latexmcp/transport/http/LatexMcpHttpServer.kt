@@ -10,6 +10,15 @@ import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.Executors
 
+/**
+ * Minimal Streamable-HTTP MCP transport over JDK [HttpServer].
+ *
+ * Session lifecycle:
+ * - `POST /mcp` initialize -> creates/returns MCP session id
+ * - `POST /mcp` subsequent calls -> require valid session id
+ * - `GET /mcp` -> SSE keepalive endpoint
+ * - `DELETE /mcp` -> closes session
+ */
 internal class LatexMcpHttpServer(
     private val host: String,
     private val port: Int,
@@ -25,6 +34,9 @@ internal class LatexMcpHttpServer(
     @Volatile
     private var httpServer: HttpServer? = null
 
+    /**
+     * Starts listening if not already running.
+     */
     @Synchronized
     fun start() {
         if (httpServer != null) return
@@ -43,6 +55,9 @@ internal class LatexMcpHttpServer(
         httpServer = server
     }
 
+    /**
+     * Stops server and clears in-memory MCP sessions.
+     */
     @Synchronized
     fun stop(delaySeconds: Int = 0) {
         httpServer?.stop(delaySeconds)
@@ -50,6 +65,9 @@ internal class LatexMcpHttpServer(
         sessions.clear()
     }
 
+    /**
+     * Returns the base URL currently configured for this server instance.
+     */
     fun baseUrl(): String = "http://$host:$port"
 
     private fun handleMcp(exchange: HttpExchange) {

@@ -1,9 +1,10 @@
 package com.github.ezrnest.latexmcp.transport.http
 
 /**
- * Standalone dev entrypoint.
+ * Standalone HTTP entrypoint for local development and external process hosting.
  *
- * In plugin mode, HTTP server startup is managed by [LatexMcpHttpService] + [LatexMcpStartupActivity].
+ * In plugin mode, startup is managed by [LatexMcpHttpService] and
+ * [com.github.ezrnest.latexmcp.ide.LatexMcpStartupActivity].
  */
 object LatexMcpHttpMain {
 

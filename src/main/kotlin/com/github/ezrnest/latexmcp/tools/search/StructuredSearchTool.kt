@@ -15,6 +15,13 @@ import nl.hannahsten.texifyidea.psi.traverseCommands
 import nl.hannahsten.texifyidea.util.parser.traverseTyped
 import java.util.regex.Pattern
 
+/**
+ * Input for [StructuredSearchTool].
+ *
+ * Scope-specific required fields:
+ * - `scope=fileset`: `mainTex`
+ * - `scope=single_document`: `texFile`
+ */
 internal data class StructuredSearchToolParams(
     val projectPath: String,
     val scope: String = "fileset",
@@ -27,6 +34,9 @@ internal data class StructuredSearchToolParams(
     val limit: Int = 1000,
 )
 
+/**
+ * Structured search result with deterministic match ordering by traversal order.
+ */
 internal data class StructuredSearchToolResult(
     val projectPath: String,
     val scope: String,
@@ -38,6 +48,9 @@ internal data class StructuredSearchToolResult(
     val source: String = "texify-structured-search",
 )
 
+/**
+ * One command/environment match and its source location.
+ */
 internal data class StructuredSearchMatch(
     val type: String,
     val name: String,
@@ -48,6 +61,11 @@ internal data class StructuredSearchMatch(
     val text: String,
 )
 
+/**
+ * PSI-based name search over commands and environments.
+ *
+ * Supports literal, wildcard, and regex patterns with optional case-insensitivity.
+ */
 internal object StructuredSearchTool {
 
     private const val SCOPE_FILESET = "fileset"
@@ -69,6 +87,9 @@ internal object StructuredSearchTool {
         val limit: Int,
     )
 
+    /**
+     * Executes search in fileset or single-document scope and returns up to `limit` matches.
+     */
     fun execute(params: StructuredSearchToolParams): StructuredSearchToolResult {
         val spec = validateAndNormalize(params)
 

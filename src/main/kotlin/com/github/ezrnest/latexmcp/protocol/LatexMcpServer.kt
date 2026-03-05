@@ -15,10 +15,20 @@ import com.github.ezrnest.latexmcp.tools.search.StructuredSearchToolParams
 import com.github.ezrnest.latexmcp.tools.structure.DocumentStructureTool
 import com.github.ezrnest.latexmcp.tools.structure.DocumentStructureToolParams
 
+/**
+ * JSON-RPC 2.0 MCP server core.
+ *
+ * This class is transport-agnostic: stdio and HTTP both delegate request handling here.
+ */
 internal class LatexMcpServer(
     private val mapper: ObjectMapper = ObjectMapper(),
 ) {
 
+    /**
+     * Handles one JSON-RPC payload (single request or batch).
+     *
+     * Returns `null` for notification-only input where JSON-RPC requires no response body.
+     */
     fun handleJsonRpc(requestText: String): String? {
         val payload = mapper.readTree(requestText)
         return when {

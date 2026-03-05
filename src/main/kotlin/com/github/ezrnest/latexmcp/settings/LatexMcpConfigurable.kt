@@ -9,6 +9,11 @@ import javax.swing.JPanel
 import javax.swing.JSpinner
 import javax.swing.SpinnerNumberModel
 
+/**
+ * IDE Settings page for MCP HTTP port configuration.
+ *
+ * Port changes are applied immediately by restarting the in-process HTTP server.
+ */
 class LatexMcpConfigurable : Configurable {
 
     private var panel: JPanel? = null

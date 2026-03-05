@@ -13,6 +13,9 @@ import com.intellij.psi.search.searches.ReferencesSearch
 import nl.hannahsten.texifyidea.index.projectstructure.LatexProjectStructure
 import nl.hannahsten.texifyidea.util.labels.LatexLabelUtil
 
+/**
+ * Input for [RenameLabelSafeTool].
+ */
 internal data class RenameLabelSafeToolParams(
     val projectPath: String,
     val mainTex: String,
@@ -21,6 +24,9 @@ internal data class RenameLabelSafeToolParams(
     val applyChanges: Boolean = true,
 )
 
+/**
+ * Full preview/apply report for a label rename operation.
+ */
 internal data class RenameLabelSafeToolResult(
     val projectPath: String,
     val mainTex: String,
@@ -36,6 +42,9 @@ internal data class RenameLabelSafeToolResult(
     val source: String = "texify-label-rename",
 )
 
+/**
+ * Per-location edit outcome reported back to clients.
+ */
 internal data class RenameLabelEdit(
     val kind: String,
     val file: String,
@@ -45,6 +54,11 @@ internal data class RenameLabelEdit(
     val applied: Boolean,
 )
 
+/**
+ * Performs collision-checked label rename across definition and references in fileset scope.
+ *
+ * If `applyChanges=false`, this tool returns a dry-run edit plan.
+ */
 internal object RenameLabelSafeTool {
 
     private data class PlannedEdit(
@@ -64,6 +78,11 @@ internal object RenameLabelSafeTool {
         val edits: List<PlannedEdit>,
     )
 
+    /**
+     * Computes and optionally applies a safe rename plan.
+     *
+     * Throws [IllegalArgumentException] for missing source label, blank inputs, or target collisions.
+     */
     fun execute(params: RenameLabelSafeToolParams): RenameLabelSafeToolResult {
         val oldLabel = params.oldLabel.trim()
         val newLabel = params.newLabel.trim()

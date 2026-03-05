@@ -6,6 +6,9 @@ import com.intellij.openapi.application.ReadAction
 import nl.hannahsten.texifyidea.index.projectstructure.FilesetData
 import nl.hannahsten.texifyidea.index.projectstructure.LatexProjectStructure
 
+/**
+ * Input for [FilesetTool].
+ */
 internal data class FilesetToolParams(
     val projectPath: String,
     val texFile: String,
@@ -13,6 +16,9 @@ internal data class FilesetToolParams(
     val includeExternalDocuments: Boolean = false,
 )
 
+/**
+ * Fileset resolution result with all file paths normalized to `projectPath`-relative form.
+ */
 internal data class FilesetToolResult(
     val targetFile: String,
     val projectPath: String,
@@ -23,13 +29,24 @@ internal data class FilesetToolResult(
     val source: String = "texify-fileset",
 )
 
+/**
+ * TeXiFy external document mapping for one label prefix.
+ */
 internal data class ExternalDocumentResult(
     val labelPrefix: String,
     val files: List<String>,
 )
 
+/**
+ * Wraps TeXiFy fileset resolution as an MCP-friendly, project-relative response.
+ */
 internal object FilesetTool {
 
+    /**
+     * Resolves the fileset containing [FilesetToolParams.texFile].
+     *
+     * Falls back to a singleton fileset containing only the target when TeXiFy has no fileset data.
+     */
     fun execute(params: FilesetToolParams): FilesetToolResult {
         val resolved = ToolExecutionHelper.resolveAndPrepare(
             projectPath = params.projectPath,

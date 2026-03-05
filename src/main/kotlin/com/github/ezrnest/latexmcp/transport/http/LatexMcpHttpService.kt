@@ -6,6 +6,9 @@ import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.thisLogger
 
+/**
+ * Application service owning the embedded HTTP MCP server lifecycle.
+ */
 @Service(Service.Level.APP)
 class LatexMcpHttpService : Disposable {
 
@@ -13,6 +16,9 @@ class LatexMcpHttpService : Disposable {
     @Volatile
     private var server: LatexMcpHttpServer? = null
 
+    /**
+     * Starts the embedded server once; no-op when already running.
+     */
     @Synchronized
     fun startIfNeeded() {
         if (server != null) return
@@ -20,6 +26,9 @@ class LatexMcpHttpService : Disposable {
         startServer()
     }
 
+    /**
+     * Restarts server only when currently running, used after settings changes.
+     */
     @Synchronized
     fun restartIfRunning() {
         if (server == null) return

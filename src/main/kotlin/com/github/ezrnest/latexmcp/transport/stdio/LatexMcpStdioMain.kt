@@ -8,9 +8,9 @@ import java.io.OutputStreamWriter
 import java.nio.charset.StandardCharsets
 
 /**
- * MCP stdio entrypoint.
+ * Standalone MCP stdio entrypoint.
  *
- * MCP stdio transport uses newline-delimited JSON-RPC messages.
+ * Transport format is newline-delimited JSON-RPC payloads.
  */
 object LatexMcpStdioMain {
 

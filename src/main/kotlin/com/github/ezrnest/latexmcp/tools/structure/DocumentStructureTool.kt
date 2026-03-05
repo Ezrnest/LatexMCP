@@ -14,11 +14,17 @@ import nl.hannahsten.texifyidea.structure.latex.LatexStructureViewCommandElement
 import nl.hannahsten.texifyidea.structure.latex.LatexStructureViewElement
 import nl.hannahsten.texifyidea.util.magic.CommandMagic
 
+/**
+ * Input for [DocumentStructureTool].
+ */
 internal data class DocumentStructureToolParams(
     val projectPath: String,
     val texFile: String,
 )
 
+/**
+ * Ordered structure entries extracted from TeXiFy structure view for one document.
+ */
 internal data class DocumentStructureToolResult(
     val projectPath: String,
     val texFile: String,
@@ -26,6 +32,11 @@ internal data class DocumentStructureToolResult(
     val source: String = "texify-structure",
 )
 
+/**
+ * One structure item exposed to MCP clients.
+ *
+ * `kind` is one of `section`, `label`, `include`.
+ */
 internal data class DocumentStructureEntry(
     val kind: String,
     val command: String,
@@ -37,6 +48,9 @@ internal data class DocumentStructureEntry(
     val resolvedFiles: List<String>? = null,
 )
 
+/**
+ * Builds a linearized document structure from TeXiFy PSI/structure-view nodes.
+ */
 internal object DocumentStructureTool {
 
     private val includeCommands: Set<String> = setOf(
@@ -66,6 +80,9 @@ internal object DocumentStructureTool {
         val includeFromStructure: Boolean,
     )
 
+    /**
+     * Extracts section/label/include entries in source order from the target `.tex` file.
+     */
     fun execute(params: DocumentStructureToolParams): DocumentStructureToolResult {
         val resolved = ToolExecutionHelper.resolveAndPrepare(
             projectPath = params.projectPath,
