@@ -36,7 +36,7 @@ class LatexMcpServerTest {
     }
 
     @Test
-    fun `tools list includes fileset tool`() {
+    fun `tools list includes fileset and document structure tools`() {
         val responseText = server.handleJsonRpc(
             """{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}"""
         )
@@ -46,6 +46,7 @@ class LatexMcpServerTest {
         val tools = response.path("result").path("tools")
         assertTrue(tools.isArray)
         assertTrue(tools.any { it.path("name").asText() == "fileset" })
+        assertTrue(tools.any { it.path("name").asText() == "document_structure" })
     }
 
     @Test

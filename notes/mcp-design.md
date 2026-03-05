@@ -15,8 +15,9 @@
 
 ## 第一工具：`fileset`（与 TeXiFy 对齐）
 ### 输入（inputSchema）
-- `path` (string, required): 工作区内 LaTeX 文件路径。
-- `includeLibraries` (boolean, default `true`): 是否返回推断到的 package/library 名称。
+- `projectPath` (string, required): IntelliJ 项目根路径。
+- `texFile` (string, required): 目标 LaTeX 文件路径（推荐相对 `projectPath`）。
+- `includeLibraries` (boolean, default `false`): 是否返回推断到的 package/library 名称。
 - `includeExternalDocuments` (boolean, default `false`): 是否返回 `\\externaldocument` 信息。
 
 ### 输出（result）
@@ -25,6 +26,7 @@
 - `libraries`: fileset 中 `\\usepackage` 等引入的库名集合。
 - `externalDocuments`: 外部文档标签来源（可选）。
 - `source`: 固定返回 `texify-fileset`，用于标识算法来源。
+- 所有文件路径返回为相对 `projectPath` 的相对路径。
 
 ### 语义基准（参考 TeXiFy）
 - 一份 fileset = root + included files（文件可属于多个 fileset）。

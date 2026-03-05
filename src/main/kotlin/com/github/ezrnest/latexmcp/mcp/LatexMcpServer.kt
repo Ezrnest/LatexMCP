@@ -113,6 +113,7 @@ internal class LatexMcpServer(
     private fun toolsListResponse(id: JsonNode): String {
         val tools = mapper.createArrayNode()
         tools.add(filesetToolDescriptor())
+        tools.add(documentStructureToolDescriptor())
 
         val result = mapper.createObjectNode().apply {
             set<JsonNode>("tools", tools)
@@ -124,18 +125,25 @@ internal class LatexMcpServer(
         val name = params.path("name").asText(null)
             ?: return errorResponse(id, -32602, "Invalid params: missing tool name")
 
-        if (name != "fileset") {
-            return errorResponse(id, -32601, "Unknown tool: $name")
-        }
-
         val arguments = params.path("arguments")
-        val path = arguments.path("path").asText(null)
-            ?: return errorResponse(id, -32602, "Invalid params: fileset.path is required")
+
+        return when (name) {
+            "fileset" -> handleFilesetCall(id, arguments)
+            "document_structure" -> handleDocumentStructureCall(id, arguments)
+            else -> errorResponse(id, -32601, "Unknown tool: $name")
+        }
+    }
+
+    private fun handleFilesetCall(id: JsonNode, arguments: JsonNode): String {
+        val projectPath = arguments.path("projectPath").asText(null)
+            ?: return errorResponse(id, -32602, "Invalid params: fileset.projectPath is required")
+        val texFile = arguments.path("texFile").asText(null)
+            ?: return errorResponse(id, -32602, "Invalid params: fileset.texFile is required")
 
         val toolParams = FilesetToolParams(
-            path = path,
-            projectPath = arguments.path("projectPath").asText(null),
-            includeLibraries = arguments.path("includeLibraries").asBoolean(true),
+            projectPath = projectPath,
+            texFile = texFile,
+            includeLibraries = arguments.path("includeLibraries").asBoolean(false),
             includeExternalDocuments = arguments.path("includeExternalDocuments").asBoolean(false),
         )
 
@@ -177,30 +185,79 @@ internal class LatexMcpServer(
         }
     }
 
+    private fun handleDocumentStructureCall(id: JsonNode, arguments: JsonNode): String {
+        val projectPath = arguments.path("projectPath").asText(null)
+            ?: return errorResponse(id, -32602, "Invalid params: document_structure.projectPath is required")
+        val texFile = arguments.path("texFile").asText(null)
+            ?: return errorResponse(id, -32602, "Invalid params: document_structure.texFile is required")
+
+        val toolParams = DocumentStructureToolParams(
+            projectPath = projectPath,
+            texFile = texFile,
+        )
+
+        return runCatching {
+            val resultData = DocumentStructureTool.execute(toolParams)
+            val structured = mapper.valueToTree<JsonNode>(resultData)
+
+            val callResult = mapper.createObjectNode().apply {
+                set<JsonNode>(
+                    "content",
+                    mapper.createArrayNode().add(
+                        mapper.createObjectNode()
+                            .put("type", "text")
+                            .put(
+                                "text",
+                                "Extracted ${resultData.entries.size} structure entries from ${resultData.texFile}.",
+                            ),
+                    ),
+                )
+                set<JsonNode>("structuredContent", structured)
+                put("isError", false)
+            }
+
+            successResponse(id, callResult)
+        }.getOrElse { error ->
+            val callResult = mapper.createObjectNode().apply {
+                set<JsonNode>(
+                    "content",
+                    mapper.createArrayNode().add(
+                        mapper.createObjectNode()
+                            .put("type", "text")
+                            .put("text", error.message ?: "document_structure tool execution failed"),
+                    ),
+                )
+                put("isError", true)
+            }
+
+            successResponse(id, callResult)
+        }
+    }
+
     private fun filesetToolDescriptor(): ObjectNode {
         val schema = mapper.createObjectNode().apply {
             put("type", "object")
-            set<JsonNode>("required", mapper.createArrayNode().add("path"))
+            set<JsonNode>("required", mapper.createArrayNode().add("projectPath").add("texFile"))
             set<JsonNode>(
                 "properties",
                 mapper.createObjectNode().apply {
                     set<JsonNode>(
-                        "path",
-                        mapper.createObjectNode()
-                            .put("type", "string")
-                            .put("description", "Absolute or workspace-relative path of the target .tex file."),
-                    )
-                    set<JsonNode>(
                         "projectPath",
                         mapper.createObjectNode()
                             .put("type", "string")
-                            .put("description", "Optional IntelliJ project base path to disambiguate multiple open projects."),
+                            .put("description", "Absolute or workspace-relative path of the IntelliJ project root directory."),
+                    )
+                    set<JsonNode>(
+                        "texFile",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Target .tex file path, relative to projectPath (absolute path also accepted)."),
                     )
                     set<JsonNode>(
                         "includeLibraries",
                         mapper.createObjectNode()
                             .put("type", "boolean")
-                            .put("default", true),
+                            .put("default", false),
                     )
                     set<JsonNode>(
                         "includeExternalDocuments",
@@ -216,6 +273,37 @@ internal class LatexMcpServer(
             put("name", "fileset")
             put("title", "Resolve TeXiFy Fileset")
             put("description", "Return the TeXiFy fileset containing the given LaTeX file.")
+            set<JsonNode>("inputSchema", schema)
+        }
+    }
+
+    private fun documentStructureToolDescriptor(): ObjectNode {
+        val schema = mapper.createObjectNode().apply {
+            put("type", "object")
+            set<JsonNode>("required", mapper.createArrayNode().add("projectPath").add("texFile"))
+            set<JsonNode>(
+                "properties",
+                mapper.createObjectNode().apply {
+                    set<JsonNode>(
+                        "projectPath",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Absolute or workspace-relative path of the IntelliJ project root directory."),
+                    )
+                    set<JsonNode>(
+                        "texFile",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Target .tex file path, relative to projectPath (absolute path also accepted)."),
+                    )
+                },
+            )
+        }
+
+        return mapper.createObjectNode().apply {
+            put("name", "document_structure")
+            put("title", "Extract LaTeX Document Structure")
+            put("description", "Return ordered section/paragraph commands and label commands with line numbers, based on TeXiFy structure view.")
             set<JsonNode>("inputSchema", schema)
         }
     }

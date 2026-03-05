@@ -18,6 +18,7 @@ repositories {
 dependencies {
     implementation(kotlin("stdlib"))
     implementation("com.fasterxml.jackson.core:jackson-databind:2.20.1")
+    testImplementation(kotlin("test"))
 
     intellijPlatform {
         intellijIdea(providers.gradleProperty("platformVersion"))
