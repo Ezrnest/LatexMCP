@@ -62,6 +62,16 @@ tasks {
         standardOutput = System.out
         errorOutput = System.err
     }
+
+    register<JavaExec>("runMcpHttp") {
+        group = "run"
+        description = "Run LatexMCP as a standalone MCP HTTP server process on port 18765 (configurable via LATEX_MCP_PORT)."
+        classpath = sourceSets["main"].runtimeClasspath
+        mainClass.set("com.github.ezrnest.latexmcp.mcp.LatexMcpHttpMain")
+        standardInput = System.`in`
+        standardOutput = System.out
+        errorOutput = System.err
+    }
 }
 
 kotlin {
