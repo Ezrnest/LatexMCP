@@ -16,6 +16,9 @@ repositories {
 
 // Read more: https://plugins.jetbrains.com/docs/intellij/tools-intellij-platform-gradle-plugin.html
 dependencies {
+    implementation(kotlin("stdlib"))
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.20.1")
+
     intellijPlatform {
         intellijIdea(providers.gradleProperty("platformVersion"))
         plugins(
@@ -48,6 +51,16 @@ tasks {
     withType<JavaCompile> {
         sourceCompatibility = "21"
         targetCompatibility = "21"
+    }
+
+    register<JavaExec>("runMcpStdio") {
+        group = "run"
+        description = "Run LatexMCP as a standalone MCP stdio server process."
+        classpath = sourceSets["main"].runtimeClasspath
+        mainClass.set("com.github.ezrnest.latexmcp.mcp.LatexMcpStdioMain")
+        standardInput = System.`in`
+        standardOutput = System.out
+        errorOutput = System.err
     }
 }
 

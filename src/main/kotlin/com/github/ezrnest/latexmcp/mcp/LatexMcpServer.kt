@@ -1,0 +1,237 @@
+package com.github.ezrnest.latexmcp.mcp
+
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.databind.node.ArrayNode
+import com.fasterxml.jackson.databind.node.ObjectNode
+
+internal class LatexMcpServer(
+    private val mapper: ObjectMapper = ObjectMapper(),
+) {
+
+    fun handleJsonRpc(requestText: String): String? {
+        val payload = mapper.readTree(requestText)
+        return when {
+            payload.isArray -> handleBatch(payload)
+            payload.isObject -> handleSingle(payload)
+            else -> mapper.writeValueAsString(
+                mapper.createObjectNode().apply {
+                    put("jsonrpc", "2.0")
+                    putNull("id")
+                    set<JsonNode>(
+                        "error",
+                        mapper.createObjectNode()
+                            .put("code", -32600)
+                            .put("message", "Invalid Request"),
+                    )
+                },
+            )
+        }
+    }
+
+    private fun handleBatch(batch: JsonNode): String? {
+        if (batch.size() == 0) {
+            return mapper.writeValueAsString(
+                mapper.createObjectNode().apply {
+                    put("jsonrpc", "2.0")
+                    putNull("id")
+                    set<JsonNode>(
+                        "error",
+                        mapper.createObjectNode()
+                            .put("code", -32600)
+                            .put("message", "Invalid Request: empty batch"),
+                    )
+                },
+            )
+        }
+
+        val responses = mapper.createArrayNode()
+        for (request in batch) {
+            val response = if (request.isObject) {
+                handleSingle(request)
+            }
+            else {
+                mapper.writeValueAsString(
+                    mapper.createObjectNode().apply {
+                        put("jsonrpc", "2.0")
+                        putNull("id")
+                        set<JsonNode>(
+                            "error",
+                            mapper.createObjectNode()
+                                .put("code", -32600)
+                                .put("message", "Invalid Request"),
+                        )
+                    },
+                )
+            }
+            if (response != null) {
+                responses.add(mapper.readTree(response))
+            }
+        }
+        return if (responses.isEmpty) null else mapper.writeValueAsString(responses)
+    }
+
+    private fun handleSingle(request: JsonNode): String? {
+        val id = request.get("id")
+        val hasId = id != null && !id.isMissingNode && !id.isNull
+        val method = request.path("method").asText(null)
+
+        if (method == null) {
+            return if (hasId) errorResponse(id, -32600, "Invalid Request: missing method") else null
+        }
+
+        return when (method) {
+            "initialize" -> if (hasId) initializeResponse(id) else null
+            "initialized" -> null
+            "tools/list" -> if (hasId) toolsListResponse(id) else null
+            "tools/call" -> if (hasId) toolsCallResponse(id, request.path("params")) else null
+            else -> if (hasId) errorResponse(id, -32601, "Method not found: $method") else null
+        }
+    }
+
+    private fun initializeResponse(id: JsonNode): String {
+        val result = mapper.createObjectNode().apply {
+            put("protocolVersion", "2025-03-26")
+            set<JsonNode>(
+                "serverInfo",
+                mapper.createObjectNode().apply {
+                    put("name", "latexmcp")
+                    put("version", "0.1.0")
+                },
+            )
+            set<JsonNode>(
+                "capabilities",
+                mapper.createObjectNode().apply {
+                    set<JsonNode>("tools", mapper.createObjectNode().put("listChanged", false))
+                },
+            )
+        }
+
+        return successResponse(id, result)
+    }
+
+    private fun toolsListResponse(id: JsonNode): String {
+        val tools = mapper.createArrayNode()
+        tools.add(filesetToolDescriptor())
+
+        val result = mapper.createObjectNode().apply {
+            set<JsonNode>("tools", tools)
+        }
+        return successResponse(id, result)
+    }
+
+    private fun toolsCallResponse(id: JsonNode, params: JsonNode): String {
+        val name = params.path("name").asText(null)
+            ?: return errorResponse(id, -32602, "Invalid params: missing tool name")
+
+        if (name != "fileset") {
+            return errorResponse(id, -32601, "Unknown tool: $name")
+        }
+
+        val arguments = params.path("arguments")
+        val path = arguments.path("path").asText(null)
+            ?: return errorResponse(id, -32602, "Invalid params: fileset.path is required")
+
+        val toolParams = FilesetToolParams(
+            path = path,
+            projectPath = arguments.path("projectPath").asText(null),
+            includeLibraries = arguments.path("includeLibraries").asBoolean(true),
+            includeExternalDocuments = arguments.path("includeExternalDocuments").asBoolean(false),
+        )
+
+        return runCatching {
+            val resultData = FilesetTool.execute(toolParams)
+            val structured = mapper.valueToTree<JsonNode>(resultData)
+
+            val callResult = mapper.createObjectNode().apply {
+                set<JsonNode>(
+                    "content",
+                    mapper.createArrayNode().add(
+                        mapper.createObjectNode()
+                            .put("type", "text")
+                            .put(
+                                "text",
+                                "Resolved ${resultData.targetFile} to ${resultData.rootCandidates.size} fileset root candidate(s), ${resultData.files.size} file(s).",
+                            ),
+                    ),
+                )
+                set<JsonNode>("structuredContent", structured)
+                put("isError", false)
+            }
+
+            successResponse(id, callResult)
+        }.getOrElse { error ->
+            val callResult = mapper.createObjectNode().apply {
+                set<JsonNode>(
+                    "content",
+                    mapper.createArrayNode().add(
+                        mapper.createObjectNode()
+                            .put("type", "text")
+                            .put("text", error.message ?: "fileset tool execution failed"),
+                    ),
+                )
+                put("isError", true)
+            }
+
+            successResponse(id, callResult)
+        }
+    }
+
+    private fun filesetToolDescriptor(): ObjectNode {
+        val schema = mapper.createObjectNode().apply {
+            put("type", "object")
+            set<JsonNode>("required", mapper.createArrayNode().add("path"))
+            set<JsonNode>(
+                "properties",
+                mapper.createObjectNode().apply {
+                    set<JsonNode>(
+                        "path",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Absolute or workspace-relative path of the target .tex file."),
+                    )
+                    set<JsonNode>(
+                        "projectPath",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Optional IntelliJ project base path to disambiguate multiple open projects."),
+                    )
+                    set<JsonNode>(
+                        "includeLibraries",
+                        mapper.createObjectNode()
+                            .put("type", "boolean")
+                            .put("default", true),
+                    )
+                    set<JsonNode>(
+                        "includeExternalDocuments",
+                        mapper.createObjectNode()
+                            .put("type", "boolean")
+                            .put("default", false),
+                    )
+                },
+            )
+        }
+
+        return mapper.createObjectNode().apply {
+            put("name", "fileset")
+            put("title", "Resolve TeXiFy Fileset")
+            put("description", "Return the TeXiFy fileset containing the given LaTeX file.")
+            set<JsonNode>("inputSchema", schema)
+        }
+    }
+
+    private fun successResponse(id: JsonNode, result: JsonNode): String {
+        val response = mapper.createObjectNode().put("jsonrpc", "2.0")
+        response.set<JsonNode>("id", id)
+        response.set<JsonNode>("result", result)
+        return mapper.writeValueAsString(response)
+    }
+
+    private fun errorResponse(id: JsonNode, code: Int, message: String): String {
+        val error = mapper.createObjectNode().put("code", code).put("message", message)
+        val response = mapper.createObjectNode().put("jsonrpc", "2.0")
+        response.set<JsonNode>("id", id)
+        response.set<ObjectNode>("error", error)
+        return mapper.writeValueAsString(response)
+    }
+}
