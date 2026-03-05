@@ -5,7 +5,9 @@ import com.intellij.openapi.application.ReadAction
 import com.intellij.openapi.editor.Document
 import com.intellij.psi.PsiDocumentManager
 import com.intellij.psi.PsiManager
+import nl.hannahsten.texifyidea.lang.predefined.CommandNames
 import nl.hannahsten.texifyidea.psi.LatexCommands
+import nl.hannahsten.texifyidea.reference.InputFileReference
 import nl.hannahsten.texifyidea.structure.latex.LatexStructureViewCommandElement
 import nl.hannahsten.texifyidea.structure.latex.LatexStructureViewElement
 import nl.hannahsten.texifyidea.util.magic.CommandMagic
@@ -29,9 +31,38 @@ internal data class DocumentStructureEntry(
     val level: Int? = null,
     val title: String? = null,
     val label: String? = null,
+    val includeTarget: String? = null,
+    val resolvedFiles: List<String>? = null,
 )
 
 internal object DocumentStructureTool {
+
+    private val includeCommands: Set<String> = setOf(
+        CommandNames.INPUT,
+        CommandNames.INCLUDE,
+        CommandNames.SUBFILE,
+        CommandNames.SUBFILE_INCLUDE,
+        CommandNames.IMPORT,
+        CommandNames.SUB_IMPORT,
+        CommandNames.INPUT_FROM,
+        CommandNames.SUB_INPUT_FROM,
+        CommandNames.INCLUDE_FROM,
+        CommandNames.SUB_INCLUDE_FROM,
+    )
+
+    private val twoPartIncludeCommands: Set<String> = setOf(
+        CommandNames.IMPORT,
+        CommandNames.SUB_IMPORT,
+        CommandNames.INPUT_FROM,
+        CommandNames.SUB_INPUT_FROM,
+        CommandNames.INCLUDE_FROM,
+        CommandNames.SUB_INCLUDE_FROM,
+    )
+
+    private data class StructureCommandCandidate(
+        val command: LatexCommands,
+        val includeFromStructure: Boolean,
+    )
 
     fun execute(params: DocumentStructureToolParams): DocumentStructureToolResult {
         val resolved = ProjectFileResolver.resolve(
@@ -47,13 +78,14 @@ internal object DocumentStructureTool {
                 ?: throw IllegalArgumentException("Cannot resolve PSI file for: ${targetFile.path}")
             val document = PsiDocumentManager.getInstance(project).getDocument(psiFile)
 
-            val commands = mutableListOf<LatexCommands>()
+            val commands = mutableListOf<StructureCommandCandidate>()
             val root = LatexStructureViewElement(psiFile)
             root.children.forEach { walkTree(it, commands, targetFile.path) }
 
             commands
-                .sortedBy { it.textOffset }
-                .mapNotNull { command ->
+                .sortedBy { it.command.textOffset }
+                .mapNotNull { candidate ->
+                    val command = candidate.command
                     val name = command.name ?: return@mapNotNull null
                     val line = lineOf(command.textOffset, document)
 
@@ -77,6 +109,22 @@ internal object DocumentStructureTool {
                             )
                         }
 
+                        candidate.includeFromStructure || name in includeCommands -> {
+                            val resolvedFiles = InputFileReference.getIncludedFiles(command)
+                                .mapNotNull { it.virtualFile }
+                                .mapNotNull { ProjectFileResolver.toProjectRelativePath(it, project, projectRoot) }
+                                .distinct()
+                                .sorted()
+
+                            DocumentStructureEntry(
+                                kind = "include",
+                                command = name,
+                                line = line,
+                                includeTarget = includeTarget(command, name),
+                                resolvedFiles = resolvedFiles.ifEmpty { null },
+                            )
+                        }
+
                         else -> null
                     }
                 }
@@ -89,14 +137,25 @@ internal object DocumentStructureTool {
         )
     }
 
-    private fun walkTree(treeElement: TreeElement, out: MutableList<LatexCommands>, targetPath: String) {
+    private fun walkTree(treeElement: TreeElement, out: MutableList<StructureCommandCandidate>, targetPath: String) {
         if (treeElement is LatexStructureViewCommandElement) {
             val cmd = treeElement.value
             if (cmd.containingFile.virtualFile?.path == targetPath) {
-                out.add(cmd)
+                out.add(
+                    StructureCommandCandidate(
+                        command = cmd,
+                        includeFromStructure = treeElement.isFileInclude,
+                    ),
+                )
             }
         }
         treeElement.children.forEach { child -> walkTree(child, out, targetPath) }
+    }
+
+    private fun includeTarget(command: LatexCommands, name: String): String? {
+        val required = command.requiredParametersText()
+        if (required.isEmpty()) return null
+        return if (name in twoPartIncludeCommands && required.size >= 2) required[0] + required[1] else required[0]
     }
 
     private fun lineOf(offset: Int, document: Document?): Int =

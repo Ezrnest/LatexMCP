@@ -97,12 +97,14 @@ Input arguments:
 
 Output fields:
 - `entries`: ordered entries from source order
-- `entries[].kind`: `section` or `label`
-- `entries[].command`: command name such as `\\section`, `\\subsection`, `\\paragraph`, `\\label`
+- `entries[].kind`: `section`, `label`, or `include`
+- `entries[].command`: command name such as `\\section`, `\\subsection`, `\\paragraph`, `\\label`, `\\input`, `\\include`
 - `entries[].line`: 1-based line number in the target file
 - `entries[].level`: section level (only for `section`)
 - `entries[].title`: section title text (only for `section`)
 - `entries[].label`: label name (only for `label`)
+- `entries[].includeTarget`: include target text (only for `include`)
+- `entries[].resolvedFiles`: resolved include files relative to `projectPath` (only for `include`, when resolvable)
 - `source` (`texify-structure`)
 
 ## Notes

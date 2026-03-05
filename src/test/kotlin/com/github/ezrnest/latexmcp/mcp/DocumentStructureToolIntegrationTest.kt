@@ -24,17 +24,20 @@ class DocumentStructureToolIntegrationTest : BasePlatformTestCase() {
         val simplified = result.entries.map { Triple(it.kind, it.command, it.line) }
         assertEquals(
             listOf(
-                Triple("section", "\\section", 3),
-                Triple("label", "\\label", 4),
-                Triple("section", "\\subsection", 6),
-                Triple("section", "\\paragraph", 7),
-                Triple("label", "\\label", 8),
+                Triple("include", "\\input", 3),
+                Triple("section", "\\section", 4),
+                Triple("label", "\\label", 5),
+                Triple("section", "\\subsection", 7),
+                Triple("section", "\\paragraph", 8),
+                Triple("label", "\\label", 9),
             ),
             simplified,
         )
 
-        assertEquals("Intro", result.entries[0].title)
-        assertEquals("sec:intro", result.entries[1].label)
-        assertEquals("par:detail", result.entries[4].label)
+        assertEquals("sections/a", result.entries[0].includeTarget)
+        assertEquals(listOf("sections/a.tex"), result.entries[0].resolvedFiles)
+        assertEquals("Intro", result.entries[1].title)
+        assertEquals("sec:intro", result.entries[2].label)
+        assertEquals("par:detail", result.entries[5].label)
     }
 }
