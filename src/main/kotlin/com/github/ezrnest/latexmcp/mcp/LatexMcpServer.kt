@@ -114,6 +114,7 @@ internal class LatexMcpServer(
         val tools = mapper.createArrayNode()
         tools.add(filesetToolDescriptor())
         tools.add(documentStructureToolDescriptor())
+        tools.add(labelLocationsToolDescriptor())
 
         val result = mapper.createObjectNode().apply {
             set<JsonNode>("tools", tools)
@@ -130,6 +131,7 @@ internal class LatexMcpServer(
         return when (name) {
             "fileset" -> handleFilesetCall(id, arguments)
             "document_structure" -> handleDocumentStructureCall(id, arguments)
+            "label_locations" -> handleLabelLocationsCall(id, arguments)
             else -> errorResponse(id, -32601, "Unknown tool: $name")
         }
     }
@@ -234,6 +236,59 @@ internal class LatexMcpServer(
         }
     }
 
+    private fun handleLabelLocationsCall(id: JsonNode, arguments: JsonNode): String {
+        val projectPath = arguments.path("projectPath").asText(null)
+            ?: return errorResponse(id, -32602, "Invalid params: label_locations.projectPath is required")
+        val mainTex = arguments.path("mainTex").asText(null)
+            ?: return errorResponse(id, -32602, "Invalid params: label_locations.mainTex is required")
+        val label = arguments.path("label").asText(null)
+            ?: return errorResponse(id, -32602, "Invalid params: label_locations.label is required")
+
+        val toolParams = LabelLocationsToolParams(
+            projectPath = projectPath,
+            mainTex = mainTex,
+            label = label,
+            includeReferences = arguments.path("includeReferences").asBoolean(true),
+        )
+
+        return runCatching {
+            val resultData = LabelLocationsTool.execute(toolParams)
+            val structured = mapper.valueToTree<JsonNode>(resultData)
+
+            val callResult = mapper.createObjectNode().apply {
+                set<JsonNode>(
+                    "content",
+                    mapper.createArrayNode().add(
+                        mapper.createObjectNode()
+                            .put("type", "text")
+                            .put(
+                                "text",
+                                "Found ${resultData.definitions.size} definition(s) and ${resultData.references.size} reference(s) for label '${resultData.label}'.",
+                            ),
+                    ),
+                )
+                set<JsonNode>("structuredContent", structured)
+                put("isError", false)
+            }
+
+            successResponse(id, callResult)
+        }.getOrElse { error ->
+            val callResult = mapper.createObjectNode().apply {
+                set<JsonNode>(
+                    "content",
+                    mapper.createArrayNode().add(
+                        mapper.createObjectNode()
+                            .put("type", "text")
+                            .put("text", error.message ?: "label_locations tool execution failed"),
+                    ),
+                )
+                put("isError", true)
+            }
+
+            successResponse(id, callResult)
+        }
+    }
+
     private fun filesetToolDescriptor(): ObjectNode {
         val schema = mapper.createObjectNode().apply {
             put("type", "object")
@@ -304,6 +359,50 @@ internal class LatexMcpServer(
             put("name", "document_structure")
             put("title", "Extract LaTeX Document Structure")
             put("description", "Return ordered section/paragraph commands and label commands with line numbers, based on TeXiFy structure view.")
+            set<JsonNode>("inputSchema", schema)
+        }
+    }
+
+    private fun labelLocationsToolDescriptor(): ObjectNode {
+        val schema = mapper.createObjectNode().apply {
+            put("type", "object")
+            set<JsonNode>("required", mapper.createArrayNode().add("projectPath").add("mainTex").add("label"))
+            set<JsonNode>(
+                "properties",
+                mapper.createObjectNode().apply {
+                    set<JsonNode>(
+                        "projectPath",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Absolute or workspace-relative path of the IntelliJ project root directory."),
+                    )
+                    set<JsonNode>(
+                        "mainTex",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Main LaTeX file path used as fileset context, relative to projectPath (absolute path also accepted)."),
+                    )
+                    set<JsonNode>(
+                        "label",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Label name to resolve, for example sec:intro."),
+                    )
+                    set<JsonNode>(
+                        "includeReferences",
+                        mapper.createObjectNode()
+                            .put("type", "boolean")
+                            .put("default", true)
+                            .put("description", "Whether to include all references to the label."),
+                    )
+                },
+            )
+        }
+
+        return mapper.createObjectNode().apply {
+            put("name", "label_locations")
+            put("title", "Resolve Label Definition And References")
+            put("description", "Find label definition locations by label name and optionally all reference locations in the same TeXiFy fileset.")
             set<JsonNode>("inputSchema", schema)
         }
     }

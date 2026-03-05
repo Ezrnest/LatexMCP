@@ -9,6 +9,7 @@ Implemented:
 - MCP JSON-RPC server core (`initialize`, `tools/list`, `tools/call`)
 - `fileset` tool backed by TeXiFy `LatexProjectStructure`
 - `document_structure` tool backed by TeXiFy `LatexStructureViewElement`
+- `label_locations` tool backed by TeXiFy `LatexLabelUtil`
 - Stdio transport entrypoint
 - HTTP transport entrypoint
 
@@ -106,6 +107,23 @@ Output fields:
 - `entries[].includeTarget`: include target text (only for `include`)
 - `entries[].resolvedFiles`: resolved include files relative to `projectPath` (only for `include`, when resolvable)
 - `source` (`texify-structure`)
+
+## Tool: `label_locations`
+
+Purpose:
+- Input `projectPath + mainTex + label` and return the label definition locations, plus references by default.
+
+Input arguments:
+- `projectPath` (required): project root directory path
+- `mainTex` (required): main `.tex` file path used as fileset context (relative to `projectPath` is preferred)
+- `label` (required): label text, for example `sec:intro`
+- `includeReferences` (optional, default `true`): include all reference locations
+
+Output fields:
+- `definitions`: definition locations from `LatexLabelUtil.getLabelParamsByName(...)`
+- `references`: reference locations (empty when `includeReferences=false`)
+- `definitions[]/references[]`: `{ file, line, column, offset }` where `file` is relative to `projectPath`
+- `source` (`texify-labels`)
 
 ## Notes
 
