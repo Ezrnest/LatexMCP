@@ -36,7 +36,7 @@ class LatexMcpServerTest {
     }
 
     @Test
-    fun `tools list includes fileset document structure label locations rename label and structured search tools`() {
+    fun `tools list includes all implemented tools`() {
         val responseText = server.handleJsonRpc(
             """{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}"""
         )
@@ -50,6 +50,7 @@ class LatexMcpServerTest {
         assertTrue(tools.any { it.path("name").asText() == "label_locations" })
         assertTrue(tools.any { it.path("name").asText() == "rename_label_safe" })
         assertTrue(tools.any { it.path("name").asText() == "structured_search" })
+        assertTrue(tools.any { it.path("name").asText() == "inspection_missing_label" })
     }
 
     @Test
@@ -80,5 +81,19 @@ class LatexMcpServerTest {
         assertTrue(response.isArray)
         assertEquals(1, response.size())
         assertEquals(4, response[0].path("id").asInt())
+    }
+
+    @Test
+    fun `inspection missing label validates scope specific required params`() {
+        val responseText = server.handleJsonRpc(
+            """
+            {"jsonrpc":"2.0","id":5,"method":"tools/call","params":{"name":"inspection_missing_label","arguments":{"projectPath":"/tmp","scope":"fileset"}}}
+            """.trimIndent()
+        )
+        assertNotNull(responseText)
+
+        val response = mapper.readTree(requireNotNull(responseText))
+        assertEquals(-32602, response.path("error").path("code").asInt())
+        assertTrue(response.path("error").path("message").asText().contains("mainTex"))
     }
 }

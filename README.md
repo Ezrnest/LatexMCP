@@ -12,6 +12,7 @@ Implemented:
 - `label_locations` tool backed by TeXiFy `LatexLabelUtil`
 - `rename_label_safe` tool for safe label rename across definitions and references
 - `structured_search` tool for PSI-based command/environment name search
+- `inspection_missing_label` tool backed by TeXiFy `LatexMissingLabelInspection`
 - Stdio transport entrypoint
 - HTTP transport entrypoint
 
@@ -169,6 +170,23 @@ Output fields:
 - `count`, `truncated`, `limit`
 - `results[]`: `{ type, name, file, line, column, offset, text }`
 - `source` (`texify-structured-search`)
+
+## Tool: `inspection_missing_label`
+
+Purpose:
+- Run TeXiFy missing-label inspection and return issue locations.
+
+Input arguments:
+- `projectPath` (required): project root directory path
+- `scope` (optional, default `fileset`): `fileset` or `single_document`
+- `mainTex` (required when `scope=fileset`): fileset context main file
+- `texFile` (required when `scope=single_document`): target file
+- `limit` (optional, default `1000`)
+
+Output fields:
+- `count`, `truncated`, `limit`
+- `issues[]`: `{ file, line, column, offset }`
+- `source` (`texify-inspection-missing-label`)
 
 ## Notes
 

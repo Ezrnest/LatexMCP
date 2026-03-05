@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import com.github.ezrnest.latexmcp.tools.fileset.FilesetTool
 import com.github.ezrnest.latexmcp.tools.fileset.FilesetToolParams
+import com.github.ezrnest.latexmcp.tools.inspection.MissingLabelInspectionTool
+import com.github.ezrnest.latexmcp.tools.inspection.MissingLabelInspectionToolParams
 import com.github.ezrnest.latexmcp.tools.labels.LabelLocationsTool
 import com.github.ezrnest.latexmcp.tools.labels.LabelLocationsToolParams
 import com.github.ezrnest.latexmcp.tools.labels.RenameLabelSafeTool
@@ -137,6 +139,7 @@ internal class LatexMcpServer(
         tools.add(labelLocationsToolDescriptor())
         tools.add(renameLabelSafeToolDescriptor())
         tools.add(structuredSearchToolDescriptor())
+        tools.add(missingLabelInspectionToolDescriptor())
 
         val result = mapper.createObjectNode().apply {
             set<JsonNode>("tools", tools)
@@ -156,6 +159,7 @@ internal class LatexMcpServer(
             "label_locations" -> handleLabelLocationsCall(id, arguments)
             "rename_label_safe" -> handleRenameLabelSafeCall(id, arguments)
             "structured_search" -> handleStructuredSearchCall(id, arguments)
+            "inspection_missing_label" -> handleMissingLabelInspectionCall(id, arguments)
             else -> errorResponse(id, -32601, "Unknown tool: $name")
         }
     }
@@ -436,6 +440,67 @@ internal class LatexMcpServer(
         }
     }
 
+    private fun handleMissingLabelInspectionCall(id: JsonNode, arguments: JsonNode): String {
+        val projectPath = arguments.path("projectPath").asText(null)
+            ?: return errorResponse(id, -32602, "Invalid params: inspection_missing_label.projectPath is required")
+
+        val scope = arguments.path("scope").asText("fileset").lowercase()
+        val mainTex = arguments.path("mainTex").asText(null)
+        val texFile = arguments.path("texFile").asText(null)
+
+        if (scope == "fileset" && mainTex == null) {
+            return errorResponse(id, -32602, "Invalid params: inspection_missing_label.mainTex is required when scope=fileset")
+        }
+        if (scope == "single_document" && texFile == null) {
+            return errorResponse(id, -32602, "Invalid params: inspection_missing_label.texFile is required when scope=single_document")
+        }
+
+        val toolParams = MissingLabelInspectionToolParams(
+            projectPath = projectPath,
+            scope = scope,
+            mainTex = mainTex,
+            texFile = texFile,
+            limit = arguments.path("limit").asInt(1000),
+        )
+
+        return runCatching {
+            val resultData = MissingLabelInspectionTool.execute(toolParams)
+            val structured = mapper.valueToTree<JsonNode>(resultData)
+
+            val callResult = mapper.createObjectNode().apply {
+                set<JsonNode>(
+                    "content",
+                    mapper.createArrayNode().add(
+                        mapper.createObjectNode()
+                            .put("type", "text")
+                            .put(
+                                "text",
+                                "Missing label inspection found ${resultData.count} issue(s) in ${resultData.scope}, truncated=${resultData.truncated}.",
+                            ),
+                    ),
+                )
+                set<JsonNode>("structuredContent", structured)
+                put("isError", false)
+            }
+
+            successResponse(id, callResult)
+        }.getOrElse { error ->
+            val callResult = mapper.createObjectNode().apply {
+                set<JsonNode>(
+                    "content",
+                    mapper.createArrayNode().add(
+                        mapper.createObjectNode()
+                            .put("type", "text")
+                            .put("text", error.message ?: "inspection_missing_label tool execution failed"),
+                    ),
+                )
+                put("isError", true)
+            }
+
+            successResponse(id, callResult)
+        }
+    }
+
     private fun filesetToolDescriptor(): ObjectNode {
         val schema = mapper.createObjectNode().apply {
             put("type", "object")
@@ -683,6 +748,59 @@ internal class LatexMcpServer(
             put("name", "structured_search")
             put("title", "Structured PSI Search")
             put("description", "Search commands and/or environments by name in a single document or TeXiFy fileset, with literal/wildcard/regex matching.")
+            set<JsonNode>("inputSchema", schema)
+        }
+    }
+
+    private fun missingLabelInspectionToolDescriptor(): ObjectNode {
+        val schema = mapper.createObjectNode().apply {
+            put("type", "object")
+            set<JsonNode>("required", mapper.createArrayNode().add("projectPath"))
+            set<JsonNode>(
+                "properties",
+                mapper.createObjectNode().apply {
+                    set<JsonNode>(
+                        "projectPath",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Absolute or workspace-relative path of the IntelliJ project root directory."),
+                    )
+                    set<JsonNode>(
+                        "scope",
+                        mapper.createObjectNode().apply {
+                            put("type", "string")
+                            set<JsonNode>("enum", mapper.createArrayNode().add("fileset").add("single_document"))
+                            put("default", "fileset")
+                            put("description", "Inspection scope: fileset or single_document.")
+                        },
+                    )
+                    set<JsonNode>(
+                        "mainTex",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Main LaTeX file path used as fileset context, required when scope=fileset."),
+                    )
+                    set<JsonNode>(
+                        "texFile",
+                        mapper.createObjectNode()
+                            .put("type", "string")
+                            .put("description", "Target LaTeX file path, required when scope=single_document."),
+                    )
+                    set<JsonNode>(
+                        "limit",
+                        mapper.createObjectNode()
+                            .put("type", "integer")
+                            .put("default", 1000)
+                            .put("minimum", 1),
+                    )
+                },
+            )
+        }
+
+        return mapper.createObjectNode().apply {
+            put("name", "inspection_missing_label")
+            put("title", "Inspect Missing Labels")
+            put("description", "Run TeXiFy missing-label inspection and return issue locations, following current label-convention settings.")
             set<JsonNode>("inputSchema", schema)
         }
     }
