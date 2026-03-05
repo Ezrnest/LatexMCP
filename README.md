@@ -36,7 +36,10 @@ Run as HTTP MCP server (default `127.0.0.1:18765`):
 
 Optional environment variables:
 - `LATEX_MCP_HOST` (default `127.0.0.1`)
-- `LATEX_MCP_PORT` (default `18765`)
+- `LATEX_MCP_PORT` (overrides plugin setting; default `18765`)
+
+IDE setting:
+- In `Settings/Preferences -> Tools -> LatexMCP`, you can configure the HTTP port used by the embedded server.
 
 Health check:
 

@@ -1,6 +1,7 @@
 package com.github.ezrnest.latexmcp.mcp
 
 import com.intellij.openapi.Disposable
+import com.intellij.openapi.application.ApplicationManager
 import com.intellij.openapi.components.Service
 import com.intellij.openapi.diagnostic.thisLogger
 
@@ -15,9 +16,34 @@ class LatexMcpHttpService : Disposable {
     fun startIfNeeded() {
         if (server != null) return
 
-        val host = System.getenv("LATEX_MCP_HOST") ?: "127.0.0.1"
-        val port = (System.getenv("LATEX_MCP_PORT") ?: "18765").toIntOrNull() ?: 18765
+        startServer()
+    }
 
+    @Synchronized
+    fun restartIfRunning() {
+        if (server == null) return
+        stopServer()
+        startServer()
+    }
+
+    override fun dispose() {
+        stopServer()
+    }
+
+    private fun resolveHost(): String = System.getenv("LATEX_MCP_HOST") ?: "127.0.0.1"
+
+    private fun resolvePort(): Int {
+        val envPort = System.getenv("LATEX_MCP_PORT")?.toIntOrNull()
+        if (envPort != null && envPort in 1..65535) {
+            return envPort
+        }
+        val settings = ApplicationManager.getApplication().getService(LatexMcpSettingsService::class.java)
+        return settings.getPort()
+    }
+
+    private fun startServer() {
+        val host = resolveHost()
+        val port = resolvePort()
         runCatching {
             LatexMcpHttpServer(host, port).also { it.start() }
         }.onSuccess { startedServer ->
@@ -28,7 +54,7 @@ class LatexMcpHttpService : Disposable {
         }
     }
 
-    override fun dispose() {
+    private fun stopServer() {
         server?.stop()
         server = null
     }

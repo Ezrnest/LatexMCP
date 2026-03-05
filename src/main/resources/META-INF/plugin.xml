@@ -28,6 +28,11 @@
          Read more: https://plugins.jetbrains.com/docs/intellij/plugin-extension-points.html -->
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="com.github.ezrnest.latexmcp.mcp.LatexMcpStartupActivity"/>
+        <applicationConfigurable
+                id="com.github.ezrnest.latexmcp.settings"
+                displayName="LatexMCP"
+                parentId="tools"
+                instance="com.github.ezrnest.latexmcp.mcp.LatexMcpConfigurable"/>
         <toolWindow id="MyToolWindow" factoryClass="com.github.ezrnest.latexmcp.MyToolWindowFactory"
                     icon="AllIcons.Toolwindows.ToolWindowPalette"/>
     </extensions>
